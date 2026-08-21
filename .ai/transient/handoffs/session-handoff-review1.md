@@ -27,7 +27,13 @@
 - **Core Tests**: 34 passed (`pytest -v`).
 - **CLI Commands**: Fully functional (`serve`, `info`, `run`, `ingest`, `search`, `vertical list-plugins`, `vertical employee/memory/computer/whatsapp/qa`).
 
-## Next Steps for Future Sprints
-- Add support for binary PDF/DOCX indexing (`pypdf`).
-- Implement persistent SQLite-backed job store for APScheduler.
-- Add optional ONNX dense embedding provider alongside hash feature projection.
+## Immediate Next Steps (Upon Resuming)
+Do NOT add new runtime features immediately. Execute the final architectural proof:
+1. **True external-plugin test**: Install runtime alone in a clean environment, confirm it runs with zero `verticals/` package present, install one vertical independently, and confirm discovery works without modifying the runtime.
+2. **Adversarial security test**: Test advanced shell bypass techniques and verify `PolicyDecision.ASK` creates a real interactive decision boundary.
+3. **Packaging/release test**: Build runtime package, build vertical package, test clean environment installation, and test release artifacts.
+4. **Freeze Architecture**.
+
+## Productization & Commercial Discussion (Following Architecture Freeze)
+- Transition focus to: `BitNet Runtime -> Plugin ecosystem -> vertical packages -> standalone commercial products`.
+- Decide repository direction: what stays open-source/free vs. paid, and which of the 5 verticals to turn into commercial products.
