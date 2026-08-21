@@ -1,0 +1,56 @@
+# BitNet AI Runtime Configuration
+runtime:
+  name: "BitNet Local Runtime"
+  environment: "development"
+  data_dir: "./data"
+  log_level: "INFO"
+
+server:
+  host: "127.0.0.1"
+  port: 8000
+  enable_docs: true
+
+inference:
+  default_provider: "mock"
+  model_name: "bitnet_b1_58-3B"
+  model_path: "./models/bitnet_b1_58-3B.gguf"
+  temperature: 0.2
+  max_tokens: 1024
+  context_window: 4096
+  threads: 4
+  local_endpoint_url: "http://127.0.0.1:11434/v1"
+
+memory:
+  db_path: "./data/memory.db"
+  vector_dim: 128
+  chunk_size: 500
+  chunk_overlap: 50
+  similarity_threshold: 0.65
+
+agent:
+  max_iterations: 10
+  timeout_seconds: 120
+  enable_shell: true
+  enable_browser: true
+  enable_cron: true
+  working_dir: "./workspace"
+
+verticals:
+  ai_employee:
+    enabled: true
+    business_name: "Acme Realty"
+    inbox_poll_interval_seconds: 60
+    auto_reply_leads: true
+  personal_memory:
+    enabled: true
+    watch_directories:
+      - "./documents"
+  ai_computer:
+    enabled: true
+    safe_mode: true
+  whatsapp_employee:
+    enabled: true
+    business_type: "restaurant"
+  qa_box:
+    enabled: true
+    headless: true
