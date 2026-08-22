@@ -13,10 +13,11 @@ from ...router import (
     TaskType,
 )
 
+from ..telemetry import telemetry_collector
+
 router = APIRouter(prefix="/api/v1/router", tags=["AI Router"])
 
 ai_router = AIRouter()
-_recent_traces: List[Dict[str, Any]] = []
 
 @router.get("/policies")
 async def get_routing_policies() -> Dict[str, Any]:
@@ -36,20 +37,7 @@ async def update_routing_policies(payload: Dict[str, Any]) -> Dict[str, Any]:
 @router.get("/telemetry")
 async def get_router_telemetry() -> Dict[str, Any]:
     """Get telemetry statistics, recent routing decisions, and cost metrics."""
-    total_calls = len(_recent_traces)
-    avg_latency = (
-        sum(t["latency_ms"] for t in _recent_traces) / max(total_calls, 1)
-        if _recent_traces
-        else 0.0
-    )
-    total_cost = sum(t.get("estimated_cost_usd", 0.0) for t in _recent_traces)
-
-    return {
-        "total_routed_tasks": total_calls,
-        "average_latency_ms": round(avg_latency, 2),
-        "total_estimated_cost_usd": round(total_cost, 6),
-        "recent_traces": _recent_traces[-20:],
-    }
+    return telemetry_collector.get_summary()
 
 @router.post("/complete")
 async def complete_with_router(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -59,13 +47,12 @@ async def complete_with_router(payload: Dict[str, Any]) -> Dict[str, Any]:
     task_type = TaskType(task_type_str) if task_type_str else None
 
     resp, trace = await ai_router.complete(prompt=prompt, task_type=task_type)
-    trace_dict = asdict(trace)
-    _recent_traces.append(trace_dict)
+    telemetry_collector.record_trace(trace)
 
     return {
         "text": resp.text,
         "executed_model_id": trace.executed_model_id,
         "latency_ms": trace.latency_ms,
         "estimated_cost_usd": trace.estimated_cost_usd,
-        "trace": trace_dict,
+        "trace": asdict(trace),
     }

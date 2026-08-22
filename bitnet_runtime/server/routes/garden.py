@@ -22,6 +22,7 @@ from ...inference import (
     MockInferenceEngine,
 )
 from ...config import config
+from ..telemetry import telemetry_collector
 
 def _get_engine(provider: str) -> InferenceEngine:
     if provider == "bitnet":
@@ -161,24 +162,41 @@ async def chat_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, A
         )
         latency = round((time.time() - start_time) * 1000.0, 1)
 
+        tokens = resp.usage.total_tokens if resp.usage else (len(prompt.split()) + len(resp.text.split()))
+        cost = 0.0 if manifest.cost_per_1k_input == 0.0 else round(0.002, 5)
+        telemetry_collector.record_direct_chat(
+            model_id=model_id,
+            latency_ms=latency,
+            tokens_used=tokens,
+            cost_usd=cost,
+            task_type="interactive_chat",
+        )
+
         return {
             "model_id": model_id,
             "model_name": manifest.name,
             "text": resp.text,
             "latency_ms": latency,
-            "tokens_used": resp.usage.total_tokens if resp.usage else 0,
-            "cost_usd": 0.0 if manifest.cost_per_1k_input == 0.0 else round(0.002, 5),
+            "tokens_used": tokens,
+            "cost_usd": cost,
             "provider": provider,
         }
     except Exception as e:
         latency = round((time.time() - start_time) * 1000.0, 1)
-        # Graceful fallback response for testing if offline server
+        tokens = len(prompt.split()) + 25
+        telemetry_collector.record_direct_chat(
+            model_id=model_id,
+            latency_ms=latency,
+            tokens_used=tokens,
+            cost_usd=0.0,
+            task_type="fallback_chat",
+        )
         return {
             "model_id": model_id,
             "model_name": manifest.name,
             "text": f"[{manifest.name} Response]: Processed prompt: '{prompt}'. (Inference completed locally on CPU).",
             "latency_ms": latency,
-            "tokens_used": len(prompt.split()) + 25,
+            "tokens_used": tokens,
             "cost_usd": 0.0,
             "provider": manifest.provider_backend,
         }
