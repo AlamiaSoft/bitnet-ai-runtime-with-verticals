@@ -3,6 +3,7 @@
 | Concept | Directory / Path | Description |
 |---|---|---|
 | Inference Engine | `bitnet_runtime/inference/` | BitNet b1.58 HTTP / binary, LLaMA.cpp, Local Endpoint, Feature Hash Embeddings |
+| AI Router Subsystem | `bitnet_runtime/router/` | Policy-driven model routing, capability registry, fallback chains, decision traces |
 | Memory Subsystem | `bitnet_runtime/memory/` | SQLite store, Vector Index, Episodic & Semantic Memory, Document Indexer |
 | Security Policy Engine | `bitnet_runtime/policy/` | `SecurityPolicyEngine` with `ALLOW`, `DENY`, `ASK` capability rules |
 | Plugin & Vertical Registry | `bitnet_runtime/plugins/` | `VerticalRegistry`, `VerticalManifest`, `VerticalPluginContract` |

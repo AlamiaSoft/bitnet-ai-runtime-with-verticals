@@ -27,39 +27,43 @@ class ModelManager:
             "architecture": platform.architecture()[0],
         }
 
-    def get_inference_engine(self) -> InferenceEngine:
-        if self._inference_engine is not None:
+    def get_inference_engine(self, provider: Optional[str] = None) -> InferenceEngine:
+        target_provider = (provider or self.settings.default_provider).lower()
+
+        if provider is None and self._inference_engine is not None:
             return self._inference_engine
 
-        provider = self.settings.default_provider.lower()
-        logger.info(f"Initializing inference provider: '{provider}'")
+        logger.info(f"Initializing inference provider: '{target_provider}'")
 
-        if provider == "bitnet":
-            self._inference_engine = BitNetEngine(
+        if target_provider == "bitnet":
+            engine = BitNetEngine(
                 server_url=self.settings.bitnet_server_url,
                 model_name=self.settings.model_name,
                 model_path=self.settings.model_path,
                 threads=self.settings.threads,
             )
-        elif provider == "llamacpp":
-            self._inference_engine = LlamaCppEngine(
+        elif target_provider == "llamacpp":
+            engine = LlamaCppEngine(
                 model_path=self.settings.model_path,
                 threads=self.settings.threads,
                 context_window=self.settings.context_window,
             )
-        elif provider == "local_endpoint":
-            self._inference_engine = LocalEndpointEngine(
+        elif target_provider in ("local_endpoint", "cloud"):
+            engine = LocalEndpointEngine(
                 endpoint_url=self.settings.local_endpoint_url,
                 model_name=self.settings.model_name,
                 api_key=self.settings.api_key,
             )
-        elif provider == "mock":
-            self._inference_engine = MockInferenceEngine()
+        elif target_provider == "mock":
+            engine = MockInferenceEngine()
         else:
-            logger.warning(f"Unknown provider '{provider}', falling back to MockInferenceEngine.")
-            self._inference_engine = MockInferenceEngine()
+            logger.warning(f"Unknown provider '{target_provider}', falling back to MockInferenceEngine.")
+            engine = MockInferenceEngine()
 
-        return self._inference_engine
+        if provider is None:
+            self._inference_engine = engine
+
+        return engine
 
     def get_embedding_engine(self, dim: int = 128) -> EmbeddingEngine:
         if self._embedding_engine is None:

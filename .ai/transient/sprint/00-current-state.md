@@ -20,4 +20,10 @@ Build the unified local AI agent runtime powered by 1-bit / edge inference with 
     - [x] Adversarial security & interactive `PolicyDecision.ASK` decision boundary verification (`tests/test_adversarial_security.py`)
     - [x] Standalone wheel packaging (`dist/bitnet_ai_runtime-0.1.0-py3-none-any.whl`)
     - [x] Expanded test suite to **40/40 tests passing** (100% pass rate)
-  - [x] **Architecture Frozen** — Ready for productization strategy discussion
+  - [x] **AI Router Foundation (Epics E1–E5)**:
+    - [x] Model capability registry supporting Local 1-Bit, Local Dense, and Cloud Frontier tiers (`ModelCapabilityRegistry`)
+    - [x] Constraint-based policy engine with airgap privacy, token limits, zero-budget, and quality scoring (`RoutingPolicyEngine`)
+    - [x] Automated execution and failover fallback chain (`AIRouter`)
+    - [x] Structured decision tracing, token accounting, and cost estimation (`RoutingTrace`)
+    - [x] Expanded test suite to **46/46 tests passing** (100% pass rate)
+  - [x] **Architecture Frozen & AI Router Ready** — Unlocking intelligent model consumption for AI Employee and subsequent verticals
