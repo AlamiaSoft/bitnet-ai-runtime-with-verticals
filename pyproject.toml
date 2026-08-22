@@ -41,6 +41,10 @@ llamacpp = [
 [project.scripts]
 bitnet-runtime = "bitnet_runtime.cli.main:app"
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bitnet_runtime*"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

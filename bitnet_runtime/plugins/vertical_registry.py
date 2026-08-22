@@ -74,8 +74,29 @@ class VerticalRegistry:
             manifests.append(m)
         return manifests
 
+    def discover_entry_points(self, group: str = "bitnet.plugins") -> None:
+        """Discovers vertical plugins registered via standard Python entry points."""
+        try:
+            from importlib.metadata import entry_points
+            eps = entry_points()
+            plugins = eps.select(group=group) if hasattr(eps, "select") else eps.get(group, [])
+            for ep in plugins:
+                try:
+                    plugin_cls = ep.load()
+                    if inspect.isclass(plugin_cls) and issubclass(plugin_cls, VerticalPluginContract):
+                        self.register(plugin_cls)
+                        logger.debug(f"Loaded vertical entry-point plugin: {ep.name}")
+                except Exception as e:
+                    logger.debug(f"Failed to load entry point {ep.name}: {e}")
+        except Exception as e:
+            logger.debug(f"Error inspecting entry points for group '{group}': {e}")
+
     def auto_discover(self, package_name: str = "verticals") -> None:
-        """Dynamically scans and imports vertical packages at runtime."""
+        """Dynamically discovers entry points and scans local vertical packages at runtime."""
+        # 1. Discover external installed entry points
+        self.discover_entry_points(group="bitnet.plugins")
+
+        # 2. Discover local workspace package if present
         try:
             pkg = importlib.import_module(package_name)
             pkg_path = getattr(pkg, "__path__", None)
@@ -85,7 +106,6 @@ class VerticalRegistry:
             for _, subname, ispkg in pkgutil.iter_modules(pkg_path):
                 try:
                     sub_module = importlib.import_module(f"{package_name}.{subname}")
-                    # Look for classes implementing VerticalPluginContract or BaseVertical
                     for attr_name in dir(sub_module):
                         attr = getattr(sub_module, attr_name)
                         if (

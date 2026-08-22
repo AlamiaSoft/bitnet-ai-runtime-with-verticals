@@ -52,10 +52,10 @@ def test_strict_allowlist_mode(tmp_path):
     res1 = engine.evaluate_shell_command("python script.py", tmp_path)
     assert res1.decision == PolicyDecision.ALLOW
 
-    # Denied (not in allowlist)
+    # Requires confirmation (not in allowlist)
     res2 = engine.evaluate_shell_command("npm install", tmp_path)
-    assert res2.decision == PolicyDecision.DENY
-    assert "not in strict allowlist" in res2.reason
+    assert res2.decision == PolicyDecision.ASK
+    assert "requires explicit user confirmation" in res2.reason
 
 def test_filesystem_boundary_evaluation(tmp_path):
     engine = SecurityPolicyEngine()

@@ -25,17 +25,20 @@ class SecurityPolicyEngine:
 
     # High-risk commands and shell injection patterns
     CRITICAL_PATTERNS = [
-        r"rm\s+-[a-zA-Z]*r[a-zA-Z]*f?\s+[/\\*]",  # rm -rf / or rm -rf *
-        r"del\s+/[sS]\s+/[qQ]\s+[a-zA-Z]:\\",     # del /s /q C:\
-        r"format\s+[a-zA-Z]:",                    # format drive
-        r"mkfs",                                  # make filesystem
-        r":\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;",  # fork bomb
-        r"curl\s+.*\|\s*(sh|bash|powershell|cmd)", # curl pipe to shell
-        r"wget\s+.*\|\s*(sh|bash|powershell|cmd)", # wget pipe to shell
-        r">\s*/dev/sd[a-z]",                      # overwrite disk
-        r"dd\s+if=.*of=/dev/",                    # dd raw write
-        r"shutdown",                              # system shutdown
-        r"reboot",                                # system reboot
+        r"rm\s+-[a-zA-Z]*r[a-zA-Z]*f?\s+[/\\*]",     # rm -rf / or rm -rf *
+        r"del\s+/[sS]\s+/[qQ]\s+[a-zA-Z]:\\",        # del /s /q C:\
+        r"format\s+[a-zA-Z]:",                       # format drive
+        r"mkfs",                                     # make filesystem
+        r":\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;",     # fork bomb
+        r"curl\s+.*\|\s*(sh|bash|powershell|cmd|zsh)",# curl pipe to shell
+        r"wget\s+.*\|\s*(sh|bash|powershell|cmd|zsh)",# wget pipe to shell
+        r">\s*/dev/sd[a-z]",                         # overwrite disk
+        r"dd\s+if=.*of=/dev/",                       # dd raw write
+        r"shutdown",                                 # system shutdown
+        r"reboot",                                   # system reboot
+        r"base64\s+-[a-zA-Z]*d.*\|\s*(sh|bash)",     # base64 decode pipe to shell
+        r"(iex|Invoke-Expression)\s+",               # powershell iex
+        r"powershell\s+.*-(e|enc|encodedcommand)",   # encoded powershell
     ]
 
     def __init__(
@@ -51,12 +54,27 @@ class SecurityPolicyEngine:
         self.ask_callback = ask_callback
         self._compiled_critical_patterns = [re.compile(p, re.IGNORECASE) for p in self.CRITICAL_PATTERNS]
 
+    def _split_subcommands(self, command: str) -> List[str]:
+        """Splits chained commands across shell delimiters (; , && , || , | , newlines, subshells)."""
+        # Extract subshell contents: $(...) or `...`
+        subshells = re.findall(r"\$\((.*?)\)|`([^`]+)`", command)
+        extracted = []
+        for s1, s2 in subshells:
+            sub = s1 or s2
+            if sub.strip():
+                extracted.append(sub.strip())
+
+        # Split on standard command separators
+        parts = re.split(r"(?:;|\&\&|\|\||\||\n)", command)
+        all_cmds = [p.strip() for p in parts if p.strip()] + extracted
+        return all_cmds
+
     def evaluate_shell_command(self, command: str, working_dir: Path) -> PolicyEvaluationResult:
         cmd_clean = command.strip()
         if not cmd_clean:
             return PolicyEvaluationResult(PolicyDecision.DENY, "Empty command string.")
 
-        # 1. Critical pattern check (Always DENY)
+        # 1. Critical pattern check across entire command string
         for pattern in self._compiled_critical_patterns:
             if pattern.search(cmd_clean):
                 return PolicyEvaluationResult(
@@ -64,23 +82,39 @@ class SecurityPolicyEngine:
                     f"Command matched critical dangerous execution pattern: '{pattern.pattern}'",
                 )
 
-        # 2. Blocked commands check
-        first_token = cmd_clean.split()[0].lower()
-        if first_token in self.blocked_commands:
-            return PolicyEvaluationResult(PolicyDecision.DENY, f"Command '{first_token}' is explicitly blocked.")
+        # 2. Inspect all chained sub-commands
+        sub_commands = self._split_subcommands(cmd_clean)
+        for sub in sub_commands:
+            # Check critical patterns in sub-commands
+            for pattern in self._compiled_critical_patterns:
+                if pattern.search(sub):
+                    return PolicyEvaluationResult(
+                        PolicyDecision.DENY,
+                        f"Sub-command '{sub}' matched dangerous pattern: '{pattern.pattern}'",
+                    )
 
-        # 3. Allowlist check if strict_mode is on
-        if self.strict_mode and self.allowed_commands is not None:
-            if first_token not in self.allowed_commands:
-                if self.ask_callback:
-                    approved = self.ask_callback(cmd_clean, {"working_dir": str(working_dir)})
-                    if approved:
-                        return PolicyEvaluationResult(PolicyDecision.ALLOW, "Approved by user confirmation.")
-                    return PolicyEvaluationResult(PolicyDecision.DENY, "Denied by user confirmation.")
+            first_token = sub.split()[0].lower() if sub.split() else ""
+            # Strip common path prefixes (e.g. /usr/bin/rm -> rm)
+            first_token_name = Path(first_token).name.lower()
+
+            if first_token in self.blocked_commands or first_token_name in self.blocked_commands:
                 return PolicyEvaluationResult(
                     PolicyDecision.DENY,
-                    f"Command '{first_token}' is not in strict allowlist.",
+                    f"Command '{first_token}' is explicitly blocked.",
                 )
+
+            # 3. Allowlist check if strict_mode is on
+            if self.strict_mode and self.allowed_commands is not None:
+                if first_token not in self.allowed_commands and first_token_name not in self.allowed_commands:
+                    if self.ask_callback:
+                        approved = self.ask_callback(cmd_clean, {"working_dir": str(working_dir), "sub_command": sub})
+                        if approved:
+                            return PolicyEvaluationResult(PolicyDecision.ALLOW, "Approved by user confirmation.")
+                        return PolicyEvaluationResult(PolicyDecision.DENY, "Denied by user confirmation.")
+                    return PolicyEvaluationResult(
+                        PolicyDecision.ASK,
+                        f"Command '{first_token}' requires explicit user confirmation (ASK).",
+                    )
 
         return PolicyEvaluationResult(PolicyDecision.ALLOW, "Command passed security policy verification.")
 
