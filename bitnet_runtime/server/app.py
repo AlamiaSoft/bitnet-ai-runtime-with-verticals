@@ -17,15 +17,15 @@ from .sse import broadcaster
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting BitNet AI Runtime Local Server...")
+    logger.info("Starting Alamia Local AI Runtime Server...")
     yield
-    logger.info("Shutting down BitNet AI Runtime Local Server...")
+    logger.info("Shutting down Alamia Local AI Runtime Server...")
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="BitNet AI Runtime API",
-        description="Local-First, Zero-Cloud-Cost AI Agent Runtime",
-        version="0.1.0",
+        title="Alamia Local AI Runtime API",
+        description="A local-first AI runtime for running capable AI models on everyday hardware — without requiring a GPU or cloud AI APIs.",
+        version="0.2.0",
         docs_url="/docs" if config.server.enable_docs else None,
         lifespan=lifespan,
     )
@@ -51,7 +51,7 @@ def create_app() -> FastAPI:
     async def root():
         if dashboard_file.exists():
             return FileResponse(dashboard_file)
-        return {"status": "BitNet AI Runtime is running."}
+        return {"status": "Alamia Local AI Runtime is running."}
 
     @app.get("/dashboard", tags=["Dashboard"])
     async def dashboard():

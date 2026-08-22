@@ -40,7 +40,7 @@ def test_router_policies_and_telemetry_endpoints(client):
 def test_dashboard_route(client):
     res = client.get("/dashboard")
     assert res.status_code == 200
-    assert "BitNet AI Runtime" in res.text
+    assert "Alamia Local AI Runtime" in res.text
 
 def test_direct_model_chat_endpoint(client):
     res = client.post(

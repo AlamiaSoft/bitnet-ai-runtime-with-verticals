@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 load_dotenv()
 
 class RuntimeSettings(BaseModel):
-    name: str = Field(default_factory=lambda: os.getenv("BITNET_RUNTIME_NAME", "BitNet Local Runtime"))
+    name: str = Field(default_factory=lambda: os.getenv("ALAMIA_RUNTIME_NAME", os.getenv("BITNET_RUNTIME_NAME", "Alamia Local AI Runtime")))
     environment: str = Field(default_factory=lambda: os.getenv("BITNET_ENV", os.getenv("ENVIRONMENT", "development")))
     data_dir: Path = Field(default_factory=lambda: Path(os.getenv("BITNET_DATA_DIR", "./data")))
     log_level: str = Field(default_factory=lambda: os.getenv("BITNET_LOG_LEVEL", "INFO"))
