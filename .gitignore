@@ -34,6 +34,8 @@ htmlcov/
 # Local database and data artifacts
 data/
 workspace/
+models/
+*.gguf
 *.db
 *.sqlite3
 

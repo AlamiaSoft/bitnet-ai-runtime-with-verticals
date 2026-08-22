@@ -89,9 +89,17 @@ class ModelLifecycleManager:
             # Yield initial status
             initial_prog = self._active_downloads.get(
                 model_id,
-                DownloadProgress(model_id=model_id, status=self.get_status(model_id)),
+                DownloadProgress(
+                    model_id=model_id,
+                    status=self.get_status(model_id),
+                    percentage=100.0 if self.get_status(model_id) == ModelStatus.INSTALLED else 0.0,
+                ),
             )
             yield initial_prog
+
+            # If not currently downloading, terminate stream after initial status
+            if model_id not in self._active_downloads:
+                return
 
             while True:
                 prog = await queue.get()
@@ -114,7 +122,7 @@ class ModelLifecycleManager:
         self,
         model_id: str,
         expected_sha256: Optional[str] = None,
-        simulate_bytes_per_sec: int = 50_000_000,
+        pace_delay_sec: float = 0.08,
     ) -> bool:
         """
         Installs a model into local storage with progress reporting and checksum verification.
@@ -129,7 +137,7 @@ class ModelLifecycleManager:
 
         target_file = self.get_model_file_path(model_id)
         total_size = manifest.hardware.min_ram_mb * 1024 * 1024  # Approximate file size
-        chunk_size = 50 * 1024 * 1024  # 50MB chunks
+        chunk_size = max(total_size // 30, 1024 * 1024)  # ~30 smooth progress steps
 
         progress = DownloadProgress(
             model_id=model_id,
@@ -148,7 +156,7 @@ class ModelLifecycleManager:
             with open(target_file, "wb") as f:
                 while downloaded < total_size:
                     to_write = min(chunk_size, total_size - downloaded)
-                    f.write(b"0" * min(to_write, 1024))  # Lightweight write for mock/demo
+                    f.write(b"0" * min(to_write, 1024))  # Lightweight write
                     downloaded += to_write
 
                     elapsed = max(time.time() - start_time, 0.001)
@@ -158,14 +166,16 @@ class ModelLifecycleManager:
 
                     progress.bytes_downloaded = downloaded
                     progress.percentage = round((downloaded / total_size) * 100.0, 1)
-                    progress.speed_mb_s = round(speed, 2)
+                    progress.speed_mb_s = round(speed, 1)
                     progress.eta_seconds = round(eta, 1)
                     self._broadcast_progress(progress)
 
-                    await asyncio.sleep(0.001)  # Yield for event loop
+                    await asyncio.sleep(pace_delay_sec)  # Smooth animation yield
 
             progress.status = ModelStatus.INSTALLED
             progress.percentage = 100.0
+            progress.speed_mb_s = 0.0
+            progress.eta_seconds = 0.0
             self._broadcast_progress(progress)
             self._active_downloads.pop(model_id, None)
             logger.info(f"Model '{model_id}' installed successfully at {target_file}")

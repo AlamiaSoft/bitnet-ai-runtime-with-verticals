@@ -104,6 +104,7 @@ async def stream_model_progress(model_id: str):
         async for prog in lifecycle_manager.subscribe_progress(model_id):
             data = json.dumps(asdict(prog))
             yield {"event": "progress", "data": data}
+            yield {"event": "message", "data": data}
             await asyncio.sleep(0.01)
 
     return EventSourceResponse(event_generator())

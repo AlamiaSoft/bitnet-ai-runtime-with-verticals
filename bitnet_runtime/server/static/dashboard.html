@@ -96,9 +96,9 @@
 
                   <!-- Status Badge -->
                   <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="{
-                    'bg-blue-500/10 text-blue-400 border border-blue-500/20': m.status === 'installed',
+                    'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30': m.status === 'installed',
                     'bg-slate-800 text-slate-400': m.status === 'available',
-                    'bg-yellow-500/10 text-yellow-400': m.status === 'downloading'
+                    'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20': m.status === 'downloading'
                   }" x-text="m.status"></span>
                 </div>
               </div>
@@ -137,29 +137,54 @@
                   </div>
                 </template>
               </div>
+
+              <!-- Live Download Progress Box (When Downloading) -->
+              <template x-if="m.status === 'downloading' || (m.download_progress && m.download_progress.status === 'downloading')">
+                <div class="mt-4 p-3 bg-slate-950/80 rounded-xl border border-yellow-500/30 space-y-2">
+                  <div class="flex justify-between items-center text-xs">
+                    <span class="text-yellow-400 font-medium flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full bg-yellow-400 animate-ping"></span>
+                      Downloading & Verifying...
+                    </span>
+                    <span class="text-slate-300 font-mono font-bold" x-text="(m.download_progress ? m.download_progress.percentage : 0) + '%'"></span>
+                  </div>
+                  <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div class="bg-yellow-400 h-full rounded-full transition-all duration-150" :style="'width: ' + (m.download_progress ? m.download_progress.percentage : 0) + '%'"></div>
+                  </div>
+                  <div class="flex justify-between items-center text-[10px] text-slate-400 font-mono">
+                    <span x-text="(m.download_progress && m.download_progress.speed_mb_s ? m.download_progress.speed_mb_s + ' MB/s' : 'Estimating...')"></span>
+                    <span x-text="(m.download_progress && m.download_progress.eta_seconds ? 'ETA: ' + m.download_progress.eta_seconds + 's' : '')"></span>
+                  </div>
+                </div>
+              </template>
+
             </div>
 
-            <!-- Action Buttons / Progress -->
+            <!-- Action Buttons / Pricing -->
             <div class="mt-5 pt-3 border-t border-slate-800/60 flex items-center justify-between">
               <span class="text-xs font-mono text-slate-400" x-text="'$' + m.cost_per_1k_input + ' / 1k toks'"></span>
 
               <div>
                 <template x-if="m.status === 'available'">
-                  <button @click="installModel(m.model_id)" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-xl transition shadow">
-                    Install Model
+                  <button @click="installModel(m.model_id)" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-xl transition shadow flex items-center gap-1.5">
+                    <span>??</span> Install Model
                   </button>
                 </template>
 
                 <template x-if="m.status === 'downloading'">
-                  <button disabled class="px-3.5 py-1.5 bg-yellow-600/50 text-yellow-200 text-xs font-medium rounded-xl cursor-not-allowed animate-pulse">
-                    Downloading...
+                  <button disabled class="px-3.5 py-1.5 bg-yellow-600/30 text-yellow-300 border border-yellow-500/40 text-xs font-medium rounded-xl cursor-not-allowed flex items-center gap-1.5 animate-pulse">
+                    <span>?</span> Downloading...
                   </button>
                 </template>
 
                 <template x-if="m.status === 'installed' && m.provider_backend !== 'mock'">
-                  <button @click="uninstallModel(m.model_id)" class="px-3 py-1.5 bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 text-slate-300 text-xs font-medium rounded-xl transition border border-slate-700">
-                    Uninstall
+                  <button @click="uninstallModel(m.model_id)" class="px-3 py-1.5 bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 text-slate-300 text-xs font-medium rounded-xl transition border border-slate-700 flex items-center gap-1">
+                    <span>???</span> Uninstall
                   </button>
+                </template>
+
+                <template x-if="m.status === 'installed' && m.provider_backend === 'mock'">
+                  <span class="text-xs text-slate-500 font-medium px-2 py-1 bg-slate-950 rounded-lg">Built-in Mock</span>
                 </template>
               </div>
             </div>
@@ -416,19 +441,39 @@
         },
 
         async installModel(id) {
+          const target = this.models.find(m => m.model_id === id);
+          if (target) {
+            target.status = 'downloading';
+            target.download_progress = { percentage: 0.0, speed_mb_s: 0.0, eta_seconds: 0.0, status: 'downloading' };
+          }
+
+          // Open SSE stream first
+          const es = new EventSource(`/api/v1/garden/models/${id}/events`);
+          const handleUpdate = (data) => {
+            if (target) {
+              target.download_progress = data;
+              target.status = data.status;
+            }
+            if (data.status === 'installed' || data.status === 'error') {
+              es.close();
+              this.loadAll();
+            }
+          };
+
+          es.onmessage = (e) => {
+            try { handleUpdate(JSON.parse(e.data)); } catch(err) {}
+          };
+          es.addEventListener('progress', (e) => {
+            try { handleUpdate(JSON.parse(e.data)); } catch(err) {}
+          });
+
           try {
             await fetch(`/api/v1/garden/models/${id}/install`, { method: 'POST' });
+          } catch(e) { 
+            console.error(e); 
+            es.close();
             await this.loadModels();
-            // Start SSE progress listener
-            const es = new EventSource(`/api/v1/garden/models/${id}/events`);
-            es.onmessage = (e) => {
-              const data = JSON.parse(e.data);
-              if (data.status === 'installed' || data.status === 'error') {
-                es.close();
-                this.loadAll();
-              }
-            };
-          } catch(e) { console.error(e); }
+          }
         },
 
         async uninstallModel(id) {
