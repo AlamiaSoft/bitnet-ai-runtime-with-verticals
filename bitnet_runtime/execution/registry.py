@@ -50,35 +50,33 @@ class ExecutionRegistry:
 
     async def resolve_backend_for_model(self, manifest: ModelManifest) -> ExecutionBackend:
         """
-        Dynamically resolves the active operational backend based on model modality and server health.
+        Dynamically resolves the active operational backend based on model modality and server health:
+        1. llama.cpp backend  <- PRIMARY (generative SLMs, GGUF embeddings, rerankers)
+        2. BitNet backend     <- ONLY where native BitNet 1-bit support
+        3. TEI backend        <- Specialized fallback/optimization for embeddings/reranking
+        4. Mock backend       <- Offline test suites
         """
-        if manifest.modality == ModelModality.EMBEDDING:
-            # 1. Try TEI
+        # 1. Native BitNet sidecar (only for BitNet model family)
+        if manifest.family == "bitnet":
+            bitnet = self._backends[BackendType.BITNET_SIDECAR]
+            h_b = await bitnet.check_health()
+            if h_b.status == BackendStatus.ONLINE:
+                return bitnet
+
+        # 2. llama.cpp (Primary for all generative SLMs, GGUF embeddings, and reranking)
+        llama = self._backends[BackendType.LLAMACPP]
+        h_llama = await llama.check_health()
+        if h_llama.status == BackendStatus.ONLINE:
+            return llama
+
+        # 3. TEI (Specialized fallback/optimization for embedding & reranker models)
+        if manifest.modality in (ModelModality.EMBEDDING, ModelModality.RERANKER):
             tei = self._backends[BackendType.TEI]
-            h = await tei.check_health()
-            if h.status == BackendStatus.ONLINE:
+            h_tei = await tei.check_health()
+            if h_tei.status == BackendStatus.ONLINE:
                 return tei
 
-            # 2. Try LlamaCpp embedding
-            llama = self._backends[BackendType.LLAMACPP]
-            h_llama = await llama.check_health()
-            if h_llama.status == BackendStatus.ONLINE:
-                return llama
-
-        else:
-            # Generative models
-            if manifest.family == "bitnet":
-                bitnet = self._backends[BackendType.BITNET_SIDECAR]
-                h_b = await bitnet.check_health()
-                if h_b.status == BackendStatus.ONLINE:
-                    return bitnet
-
-            llama = self._backends[BackendType.LLAMACPP]
-            h_l = await llama.check_health()
-            if h_l.status == BackendStatus.ONLINE:
-                return llama
-
-        # Test fallback
+        # 4. Mock backend (for offline CI test suites)
         return self._backends[BackendType.MOCK]
 
     async def load_model(self, manifest: ModelManifest, model_path: Optional[str] = None) -> LoadedModelInstance:
