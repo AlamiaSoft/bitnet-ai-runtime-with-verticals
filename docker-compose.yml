@@ -1,0 +1,18 @@
+services:
+  bitnet-runtime:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bitnet-ai-runtime
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./workspace:/app/workspace
+    environment:
+      - DEFAULT_PROVIDER=bitnet
+      - BITNET_SERVER_URL=http://host.docker.internal:8080/v1
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8000
+    restart: unless-stopped
