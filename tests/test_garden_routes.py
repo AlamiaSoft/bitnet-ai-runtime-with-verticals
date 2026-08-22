@@ -52,3 +52,19 @@ def test_direct_model_chat_endpoint(client):
     assert "text" in data
     assert "model_id" in data
     assert data["model_id"] == "mock_local_engine"
+
+def test_direct_embedding_model_endpoint(client):
+    res = client.post(
+        "/api/v1/garden/models/bge_small_en_v1.5/embed",
+        json={
+            "text_a": "Artificial intelligence algorithms",
+            "text_b": "Machine learning systems",
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "dimensions" in data
+    assert data["dimensions"] > 0
+    assert "cosine_similarity" in data
+    assert data["cosine_similarity"] is not None
+    assert "vector_a_preview" in data

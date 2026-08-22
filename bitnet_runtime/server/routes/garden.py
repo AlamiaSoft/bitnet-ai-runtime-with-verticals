@@ -15,12 +15,14 @@ from ...model_garden import (
 )
 from ...inference import (
     BitNetEngine,
+    BitNetEmbeddingEngine,
     CompletionResponse,
     InferenceEngine,
     LlamaCppEngine,
     LocalEndpointEngine,
     MockInferenceEngine,
 )
+import numpy as np
 from ...config import config
 from ..telemetry import telemetry_collector
 
@@ -205,3 +207,52 @@ async def chat_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, A
             "cost_usd": 0.0,
             "provider": manifest.provider_backend,
         }
+
+@router.post("/models/{model_id}/embed")
+async def embed_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate local embeddings and optional semantic similarity for embedding models."""
+    manifest = garden.get(model_id)
+    if not manifest:
+        raise HTTPException(status_code=404, detail=f"Model '{model_id}' not found.")
+
+    text_a = payload.get("text_a", payload.get("text", ""))
+    text_b = payload.get("text_b", None)
+
+    start_time = time.time()
+    dim = manifest.context_window if (manifest.context_window and manifest.context_window <= 768) else 384
+    embedder = BitNetEmbeddingEngine(dim=dim)
+    res_a = await embedder.embed_text(text_a)
+
+    similarity = None
+    res_b = None
+    if text_b:
+        res_b = await embedder.embed_text(text_b)
+        v_a = np.array(res_a.vector)
+        v_b = np.array(res_b.vector)
+        dot = float(np.dot(v_a, v_b))
+        norm_a = float(np.linalg.norm(v_a))
+        norm_b = float(np.linalg.norm(v_b))
+        similarity = dot / (norm_a * norm_b + 1e-9)
+
+    latency = round((time.time() - start_time) * 1000.0, 1)
+
+    telemetry_collector.record_direct_chat(
+        model_id=model_id,
+        prompt=f"Embed: '{text_a}'" + (f" vs '{text_b}'" if text_b else ""),
+        response_text=f"Vector dim={len(res_a.vector)}" + (f", Cosine Similarity={similarity:.4f}" if similarity is not None else ""),
+        latency_ms=latency,
+        tokens_used=len(text_a.split()) + (len(text_b.split()) if text_b else 0),
+        cost_usd=0.0,
+        task_type="vector_embedding",
+    )
+
+    return {
+        "model_id": model_id,
+        "model_name": manifest.name,
+        "dimensions": len(res_a.vector),
+        "vector_a_preview": [round(float(x), 4) for x in res_a.vector[:8]],
+        "text_a": text_a,
+        "text_b": text_b,
+        "cosine_similarity": round(float(similarity), 4) if similarity is not None else None,
+        "latency_ms": latency,
+    }

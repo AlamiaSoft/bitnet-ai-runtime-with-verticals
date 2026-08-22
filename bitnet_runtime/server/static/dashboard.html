@@ -44,7 +44,7 @@
         <button @click="tab = 'playground'" :class="tab === 'playground' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">💬 Model Playground</button>
         <button @click="tab = 'hardware'" :class="tab === 'hardware' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">💾 Hardware & Storage</button>
         <button @click="tab = 'router'" :class="tab === 'router' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">⚙️ Router Studio</button>
-        <button @click="tab = 'telemetry'" :class="tab === 'telemetry' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">📊 Telemetry</button>
+        <button @click="tab = 'telemetry'" :class="tab === 'telemetry' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">📊 Telemetry & Logs</button>
       </nav>
 
       <!-- Status Indicator -->
@@ -88,12 +88,8 @@
               <div class="flex justify-between items-start mb-3">
                 <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300" x-text="m.family"></span>
                 <div class="flex items-center gap-1.5">
-                  <!-- Compatibility Badge -->
-                  <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="{
-                    'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20': m.compatibility.status === 'compatible',
-                    'bg-amber-500/10 text-amber-400 border border-amber-500/20': m.compatibility.status === 'ram_constrained',
-                    'bg-rose-500/10 text-rose-400 border border-rose-500/20': m.compatibility.status === 'incompatible_arch'
-                  }" x-text="m.compatibility.status === 'compatible' ? '✓ Compatible' : m.compatibility.status"></span>
+                  <!-- Modality Badge -->
+                  <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full" :class="m.modality === 'embedding' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'" x-text="m.modality === 'embedding' ? 'Vector Embedding' : 'Generative SLM'"></span>
 
                   <!-- Status Badge -->
                   <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="{
@@ -110,8 +106,8 @@
               <!-- Specs Table -->
               <div class="mt-4 grid grid-cols-3 gap-2 text-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60">
                 <div>
-                  <div class="text-[10px] text-slate-500 uppercase font-bold">Params</div>
-                  <div class="text-xs font-semibold text-slate-200 mt-0.5" x-text="m.parameter_size"></div>
+                  <div class="text-[10px] text-slate-500 uppercase font-bold" x-text="m.modality === 'embedding' ? 'Vector Dim' : 'Params'"></div>
+                  <div class="text-xs font-semibold text-slate-200 mt-0.5" x-text="m.modality === 'embedding' ? '384d' : m.parameter_size"></div>
                 </div>
                 <div>
                   <div class="text-[10px] text-slate-500 uppercase font-bold">RAM</div>
@@ -180,9 +176,20 @@
 
                 <template x-if="m.status === 'installed'">
                   <div class="flex items-center gap-2">
-                    <button @click="openPlayground(m.model_id)" class="px-3 py-1.5 bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600 hover:text-white border border-emerald-500/30 text-xs font-medium rounded-xl transition flex items-center gap-1">
-                      <span>💬</span> Chat
-                    </button>
+                    <!-- If Generative SLM: Chat Button -->
+                    <template x-if="m.modality === 'generative_text'">
+                      <button @click="openPlayground(m.model_id)" class="px-3 py-1.5 bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600 hover:text-white border border-emerald-500/30 text-xs font-medium rounded-xl transition flex items-center gap-1">
+                        <span>💬</span> Chat
+                      </button>
+                    </template>
+
+                    <!-- If Embedding Model: Test Vector Button -->
+                    <template x-if="m.modality === 'embedding'">
+                      <button @click="openEmbeddingTester(m.model_id)" class="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600 hover:text-white border border-blue-500/30 text-xs font-medium rounded-xl transition flex items-center gap-1">
+                        <span>📐</span> Test Vector
+                      </button>
+                    </template>
+
                     <template x-if="m.provider_backend !== 'mock'">
                       <button @click="uninstallModel(m.model_id)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 text-slate-400 text-xs font-medium rounded-xl transition border border-slate-700">
                         🗑️
@@ -198,19 +205,19 @@
       </div>
     </section>
 
-    <!-- TAB 2: INTERACTIVE MODEL PLAYGROUND -->
+    <!-- TAB 2: INTERACTIVE MODEL PLAYGROUND (FOR GENERATIVE SLMS) -->
     <section x-show="tab === 'playground'" x-cloak class="space-y-6">
       <div class="flex justify-between items-center">
         <div>
           <h2 class="text-xl font-bold text-white">Interactive Model Playground</h2>
-          <p class="text-xs text-slate-400 mt-0.5">Direct prompt execution and chat with your downloaded models.</p>
+          <p class="text-xs text-slate-400 mt-0.5">Direct prompt execution and chat with your downloaded generative SLMs.</p>
         </div>
 
         <!-- Model Selector Dropdown -->
         <div class="flex items-center gap-2">
           <label class="text-xs text-slate-400">Active Model:</label>
           <select x-model="chatModelId" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-emerald-400 font-medium focus:outline-none focus:border-emerald-500">
-            <template x-for="m in installedModels" :key="m.model_id">
+            <template x-for="m in installedGenerativeModels" :key="m.model_id">
               <option :value="m.model_id" x-text="m.name + ' (' + m.parameter_size + ')'"></option>
             </template>
           </select>
@@ -292,6 +299,57 @@
         </div>
       </div>
     </section>
+
+    <!-- EMBEDDING & SEMANTIC SIMILARITY MODAL -->
+    <div x-show="showEmbedModal" x-cloak class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl relative">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span>📐</span> Vector Embedding & Semantic Similarity Tester
+            </h3>
+            <p class="text-xs text-slate-400" x-text="'Model: ' + embedModelId"></p>
+          </div>
+          <button @click="showEmbedModal = false" class="text-slate-400 hover:text-white text-sm">✕</button>
+        </div>
+
+        <div class="space-y-4 text-xs">
+          <div>
+            <label class="block text-slate-400 mb-1 font-medium">Text A (Anchor Passage)</label>
+            <input type="text" x-model="embedTextA" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-blue-500">
+          </div>
+
+          <div>
+            <label class="block text-slate-400 mb-1 font-medium">Text B (Comparison Passage for Cosine Similarity)</label>
+            <input type="text" x-model="embedTextB" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-blue-500">
+          </div>
+
+          <button @click="testEmbedding()" :disabled="embedLoading" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold rounded-xl text-xs transition">
+            <span x-text="embedLoading ? 'Calculating Local Vectors...' : 'Compute Vector & Semantic Similarity'"></span>
+          </button>
+
+          <template x-if="embedResult">
+            <div class="space-y-3 pt-3 border-t border-slate-800">
+              <div class="grid grid-cols-2 gap-3 text-center">
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                  <div class="text-[10px] text-slate-500 uppercase font-bold">Vector Dimensions</div>
+                  <div class="text-lg font-bold text-white mt-1" x-text="embedResult.dimensions + 'd'"></div>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-xl border border-blue-500/30">
+                  <div class="text-[10px] text-blue-400 uppercase font-bold">Cosine Similarity Score</div>
+                  <div class="text-lg font-bold text-blue-400 mt-1" x-text="(embedResult.cosine_similarity * 100).toFixed(1) + '% (' + embedResult.cosine_similarity + ')'"></div>
+                </div>
+              </div>
+
+              <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                <div class="text-[10px] font-bold text-slate-500 uppercase">Vector Preview (First 8 dims)</div>
+                <div class="font-mono text-[11px] text-slate-300" x-text="'[' + embedResult.vector_a_preview.join(', ') + ', ...]' "></div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
 
     <!-- TAB 3: HARDWARE & STORAGE -->
     <section x-show="tab === 'hardware'" x-cloak class="space-y-6">
@@ -423,14 +481,22 @@
       </div>
     </section>
 
-    <!-- TAB 5: TELEMETRY -->
+    <!-- TAB 5: TELEMETRY & LOGS -->
     <section x-show="tab === 'telemetry'" x-cloak class="space-y-6">
-      <h2 class="text-xl font-bold text-white">Live Router Telemetry & Observability</h2>
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-white">Live Execution Traces & Prompt Logs</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Inspect real-time model requests, user prompts, generated text, latencies, and token metrics.</p>
+        </div>
+        <button @click="loadTelemetry()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl text-xs flex items-center gap-1.5 transition">
+          <span>🔄</span> Refresh
+        </button>
+      </div>
 
       <!-- Metrics Top Row -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-          <div class="text-xs text-slate-500 font-medium uppercase">Total Tasks Routed</div>
+          <div class="text-xs text-slate-500 font-medium uppercase">Total Executions Logged</div>
           <div class="text-2xl font-bold text-white mt-1" x-text="telemetry.total_routed_tasks"></div>
         </div>
         <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
@@ -443,11 +509,11 @@
         </div>
       </div>
 
-      <!-- Detailed Execution Traces Dialogue & Logs -->
+      <!-- Detailed Execution Traces Accordion Table -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-          <h3 class="text-sm font-semibold text-white">Recent Execution & Message Logs</h3>
-          <span class="text-xs text-slate-500 font-mono" x-text="'Showing ' + telemetry.recent_traces.length + ' logged interactions'"></span>
+          <h3 class="text-sm font-semibold text-white">Execution & Message Logs</h3>
+          <span class="text-xs text-slate-500 font-mono" x-text="'Showing ' + telemetry.recent_traces.length + ' entries'"></span>
         </div>
 
         <div class="divide-y divide-slate-800/80">
@@ -473,15 +539,15 @@
                 <!-- User Prompt Box -->
                 <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800/80 space-y-1">
                   <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex justify-between">
-                    <span>Input Message</span>
+                    <span>Input Prompt</span>
                   </div>
-                  <p class="text-slate-300 font-mono whitespace-pre-wrap leading-relaxed" x-text="t.prompt || '(No input recorded)'"></p>
+                  <p class="text-slate-300 font-mono whitespace-pre-wrap leading-relaxed" x-text="t.prompt || '(No prompt recorded)'"></p>
                 </div>
 
                 <!-- Generated Response Box -->
                 <div class="bg-slate-950 p-3.5 rounded-xl border border-emerald-500/20 space-y-1">
                   <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex justify-between">
-                    <span>Model Response Output</span>
+                    <span>Model Output / Vector</span>
                   </div>
                   <p class="text-slate-200 font-mono whitespace-pre-wrap leading-relaxed" x-text="t.response_text || (t.decision ? t.decision.rationale : '(Completed)')"></p>
                 </div>
@@ -523,6 +589,14 @@
         ],
         chatLoading: false,
 
+        // Embedding Tester Modal state
+        showEmbedModal: false,
+        embedModelId: 'bge_small_en_v1.5',
+        embedTextA: 'Deep learning natural language processing',
+        embedTextB: 'Neural networks for text analysis',
+        embedResult: null,
+        embedLoading: false,
+
         // Router state
         routerTaskType: 'classification',
         routerPrompt: 'Classify this inquiry: Urgent need for 50 commercial licenses',
@@ -531,7 +605,7 @@
 
         async init() {
           await this.loadAll();
-          setInterval(() => this.loadTelemetry(), 5000);
+          setInterval(() => this.loadTelemetry(), 4000);
         },
 
         async loadAll() {
@@ -542,8 +616,7 @@
           try {
             const res = await fetch('/api/v1/garden/models');
             this.models = await res.json();
-            // Default active model to first installed
-            const inst = this.installedModels;
+            const inst = this.installedGenerativeModels;
             if (inst.length > 0 && !inst.some(m => m.model_id === this.chatModelId)) {
               this.chatModelId = inst[0].model_id;
             }
@@ -579,13 +652,36 @@
           });
         },
 
-        get installedModels() {
-          return this.models.filter(m => m.status === 'installed' || m.provider_backend === 'mock');
+        get installedGenerativeModels() {
+          return this.models.filter(m => (m.status === 'installed' || m.provider_backend === 'mock') && m.modality === 'generative_text');
         },
 
         openPlayground(modelId) {
           this.chatModelId = modelId;
           this.tab = 'playground';
+        },
+
+        openEmbeddingTester(modelId) {
+          this.embedModelId = modelId;
+          this.showEmbedModal = true;
+          this.embedResult = null;
+        },
+
+        async testEmbedding() {
+          this.embedLoading = true;
+          try {
+            const res = await fetch(`/api/v1/garden/models/${this.embedModelId}/embed`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text_a: this.embedTextA, text_b: this.embedTextB })
+            });
+            this.embedResult = await res.json();
+            await this.loadTelemetry();
+          } catch(e) {
+            console.error(e);
+          } finally {
+            this.embedLoading = false;
+          }
         },
 
         async installModel(id) {
@@ -655,6 +751,7 @@
               model_name: data.model_name || this.chatModelId,
               meta: `${data.latency_ms}ms • ${data.tokens_used} toks`
             });
+            await this.loadTelemetry();
           } catch(e) {
             this.chatMessages.push({
               role: 'assistant',
