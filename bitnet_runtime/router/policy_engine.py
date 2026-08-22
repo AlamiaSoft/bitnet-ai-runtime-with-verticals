@@ -58,9 +58,10 @@ class RoutingPolicyEngine:
                     filter_reasons[m.model_id] = "Paid cloud model rejected on zero-budget constraint"
                     continue
 
-            # Minimum quality score
-            if m.quality_score < req.min_quality:
-                filter_reasons[m.model_id] = f"Quality score {m.quality_score} below required minimum {req.min_quality}"
+            # Minimum task quality score
+            task_rating = m.task_ratings.get(req.task_type, m.quality_score)
+            if task_rating < req.min_quality:
+                filter_reasons[m.model_id] = f"Task rating {task_rating} for '{req.task_type}' below required minimum {req.min_quality}"
                 continue
 
             eligible_candidates.append(m)
@@ -83,35 +84,34 @@ class RoutingPolicyEngine:
         scores: Dict[str, float] = {}
         for m in eligible_candidates:
             score = 50.0  # Base score
+            task_rating = m.task_ratings.get(req.task_type, m.quality_score)
 
             # Preferred tier bonus
             if req.preferred_tier and m.tier == req.preferred_tier:
                 score += 30.0
 
-            # Quality alignment
-            score += (m.quality_score - req.min_quality) * 10.0
+            # Granular Task-Specific Benchmark Alignment (Core intelligence weight)
+            score += (task_rating - req.min_quality) * 20.0
 
             # Cost efficiency (zero-cost local models get strong boost)
             if m.cost_per_1k_input == 0.0:
-                score += 25.0
+                score += 20.0
             else:
                 score -= (m.cost_per_1k_input * 1000.0)
 
             # Latency alignment
-            if m.typical_latency_ms <= 200.0:
-                score += 15.0
-            elif m.typical_latency_ms <= 500.0:
+            if m.typical_latency_ms <= 120.0:
+                score += 10.0
+            elif m.typical_latency_ms <= 250.0:
                 score += 8.0
+            elif m.typical_latency_ms <= 500.0:
+                score += 4.0
             else:
                 score -= (m.typical_latency_ms / 100.0)
 
-            # High risk or complex reasoning bias towards higher quality
-            if req.task_type in (TaskType.HIGH_RISK_ACTION, TaskType.CODING, TaskType.REASONING):
-                score += m.quality_score * 5.0
-
-            # Fast edge classification/extraction bias towards 1-bit
-            if req.task_type in (TaskType.CLASSIFICATION, TaskType.EXTRACTION) and m.tier == ModelTier.LOCAL_1BIT:
-                score += 30.0
+            # Ultra-light edge classification bonus for 1-bit models
+            if req.task_type == TaskType.CLASSIFICATION and m.tier == ModelTier.LOCAL_1BIT:
+                score += 10.0
 
             scores[m.model_id] = round(score, 2)
 

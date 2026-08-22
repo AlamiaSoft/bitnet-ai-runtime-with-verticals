@@ -5,21 +5,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 from ..inference.base import CompletionResponse, TokenUsage
-
-class TaskType(str, enum.Enum):
-    CLASSIFICATION = "classification"
-    EXTRACTION = "extraction"
-    SUMMARIZATION = "summarization"
-    RAG_QA = "rag_qa"
-    REASONING = "reasoning"
-    CODING = "coding"
-    CREATIVE = "creative"
-    HIGH_RISK_ACTION = "high_risk_action"
-
-class ModelTier(str, enum.Enum):
-    LOCAL_1BIT = "local_1bit"          # Ultra-fast, zero-cost, CPU-optimized 1-bit models
-    LOCAL_DENSE = "local_dense"        # Local CPU/GPU quantized dense models (8B/14B)
-    CLOUD_FRONTIER = "cloud_frontier"  # External frontier models (OpenAI, Claude, DeepSeek)
+from ..model_garden.models import ModelTier, TaskType
 
 class PrivacyRequirement(str, enum.Enum):
     AIRGAPPED_LOCAL_ONLY = "airgapped_local_only"  # 100% on-device CPU/RAM, no outbound net
@@ -38,6 +24,7 @@ class ModelCapabilityProfile:
     tier: ModelTier
     provider: str                  # "bitnet", "llamacpp", "local_endpoint", "mock", "cloud"
     capabilities: Set[TaskType]
+    task_ratings: Dict[TaskType, float] = field(default_factory=dict)
     context_window: int = 4096
     cost_per_1k_input: float = 0.0 # USD per 1k input tokens (0.0 for local)
     cost_per_1k_output: float = 0.0# USD per 1k output tokens (0.0 for local)

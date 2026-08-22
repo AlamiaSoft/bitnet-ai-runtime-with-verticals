@@ -26,4 +26,10 @@ Build the unified local AI agent runtime powered by 1-bit / edge inference with 
     - [x] Automated execution and failover fallback chain (`AIRouter`)
     - [x] Structured decision tracing, token accounting, and cost estimation (`RoutingTrace`)
     - [x] Expanded test suite to **46/46 tests passing** (100% pass rate)
-  - [x] **Architecture Frozen & AI Router Ready** — Unlocking intelligent model consumption for AI Employee and subsequent verticals
+  - [x] **Model Garden Subsystem & Granular Capability Ratings**:
+    - [x] Curated catalog for CPU-friendly 1–4B SLMs (BitNet b1.58, Qwen 2.5, Phi-3.5 Mini, Gemma 2, LLaMA 3.2), dedicated embedding models (BGE Small, MiniLM, BitNet hash), and specialized rerankers (`ModelGarden`)
+    - [x] Machine-readable manifests with hardware constraints (`min_ram_mb`, `quantization`) and benchmarked task ratings (`task_ratings: Dict[TaskType, float]`)
+    - [x] Decoupled modality separation preventing embedding models from contaminating generative pipelines
+    - [x] Upgraded `ModelCapabilityRegistry` to dynamically sync from `ModelGarden`
+    - [x] Expanded test suite to **50/50 tests passing** (100% pass rate)
+  - [x] **Ready for Flagship AI Employee Vertical Upgrade**
