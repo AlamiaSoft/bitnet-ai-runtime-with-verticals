@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BitNet AI Runtime ? Model Garden & AI Router Dashboard</title>
+  <title>BitNet AI Runtime — Model Garden & AI Router Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script>
@@ -40,10 +40,11 @@
 
       <!-- Navigation Tabs -->
       <nav class="flex space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-medium">
-        <button @click="tab = 'garden'" :class="tab === 'garden' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">?? Model Garden</button>
-        <button @click="tab = 'hardware'" :class="tab === 'hardware' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">?? Hardware & Storage</button>
-        <button @click="tab = 'router'" :class="tab === 'router' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">?? Router Studio</button>
-        <button @click="tab = 'telemetry'" :class="tab === 'telemetry' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">?? Telemetry</button>
+        <button @click="tab = 'garden'" :class="tab === 'garden' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">🌸 Model Garden</button>
+        <button @click="tab = 'playground'" :class="tab === 'playground' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">💬 Model Playground</button>
+        <button @click="tab = 'hardware'" :class="tab === 'hardware' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">💾 Hardware & Storage</button>
+        <button @click="tab = 'router'" :class="tab === 'router' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">⚙️ Router Studio</button>
+        <button @click="tab = 'telemetry'" :class="tab === 'telemetry' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">📊 Telemetry</button>
       </nav>
 
       <!-- Status Indicator -->
@@ -63,7 +64,7 @@
       <div class="flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
         <div>
           <h2 class="text-xl font-bold text-white">Curated Model Garden</h2>
-          <p class="text-xs text-slate-400 mt-0.5">CPU-friendly 1?4B SLMs, dedicated embeddings, and specialized rerankers.</p>
+          <p class="text-xs text-slate-400 mt-0.5">CPU-friendly 1–4B SLMs, dedicated embeddings, and specialized rerankers.</p>
         </div>
 
         <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -92,7 +93,7 @@
                     'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20': m.compatibility.status === 'compatible',
                     'bg-amber-500/10 text-amber-400 border border-amber-500/20': m.compatibility.status === 'ram_constrained',
                     'bg-rose-500/10 text-rose-400 border border-rose-500/20': m.compatibility.status === 'incompatible_arch'
-                  }" x-text="m.compatibility.status === 'compatible' ? '? Compatible' : m.compatibility.status"></span>
+                  }" x-text="m.compatibility.status === 'compatible' ? '✓ Compatible' : m.compatibility.status"></span>
 
                   <!-- Status Badge -->
                   <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="{
@@ -144,7 +145,7 @@
                   <div class="flex justify-between items-center text-xs">
                     <span class="text-yellow-400 font-medium flex items-center gap-1.5">
                       <span class="w-2 h-2 rounded-full bg-yellow-400 animate-ping"></span>
-                      Downloading & Verifying...
+                      Downloading from Hugging Face...
                     </span>
                     <span class="text-slate-300 font-mono font-bold" x-text="(m.download_progress ? m.download_progress.percentage : 0) + '%'"></span>
                   </div>
@@ -152,7 +153,7 @@
                     <div class="bg-yellow-400 h-full rounded-full transition-all duration-150" :style="'width: ' + (m.download_progress ? m.download_progress.percentage : 0) + '%'"></div>
                   </div>
                   <div class="flex justify-between items-center text-[10px] text-slate-400 font-mono">
-                    <span x-text="(m.download_progress && m.download_progress.speed_mb_s ? m.download_progress.speed_mb_s + ' MB/s' : 'Estimating...')"></span>
+                    <span x-text="(m.download_progress && m.download_progress.speed_mb_s ? m.download_progress.speed_mb_s + ' MB/s' : 'Connecting...')"></span>
                     <span x-text="(m.download_progress && m.download_progress.eta_seconds ? 'ETA: ' + m.download_progress.eta_seconds + 's' : '')"></span>
                   </div>
                 </div>
@@ -164,27 +165,30 @@
             <div class="mt-5 pt-3 border-t border-slate-800/60 flex items-center justify-between">
               <span class="text-xs font-mono text-slate-400" x-text="'$' + m.cost_per_1k_input + ' / 1k toks'"></span>
 
-              <div>
+              <div class="flex items-center gap-2">
                 <template x-if="m.status === 'available'">
                   <button @click="installModel(m.model_id)" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-xl transition shadow flex items-center gap-1.5">
-                    <span>??</span> Install Model
+                    <span>⬇️</span> Install Model
                   </button>
                 </template>
 
                 <template x-if="m.status === 'downloading'">
                   <button disabled class="px-3.5 py-1.5 bg-yellow-600/30 text-yellow-300 border border-yellow-500/40 text-xs font-medium rounded-xl cursor-not-allowed flex items-center gap-1.5 animate-pulse">
-                    <span>?</span> Downloading...
+                    <span>⏳</span> Downloading...
                   </button>
                 </template>
 
-                <template x-if="m.status === 'installed' && m.provider_backend !== 'mock'">
-                  <button @click="uninstallModel(m.model_id)" class="px-3 py-1.5 bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 text-slate-300 text-xs font-medium rounded-xl transition border border-slate-700 flex items-center gap-1">
-                    <span>???</span> Uninstall
-                  </button>
-                </template>
-
-                <template x-if="m.status === 'installed' && m.provider_backend === 'mock'">
-                  <span class="text-xs text-slate-500 font-medium px-2 py-1 bg-slate-950 rounded-lg">Built-in Mock</span>
+                <template x-if="m.status === 'installed'">
+                  <div class="flex items-center gap-2">
+                    <button @click="openPlayground(m.model_id)" class="px-3 py-1.5 bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600 hover:text-white border border-emerald-500/30 text-xs font-medium rounded-xl transition flex items-center gap-1">
+                      <span>💬</span> Chat
+                    </button>
+                    <template x-if="m.provider_backend !== 'mock'">
+                      <button @click="uninstallModel(m.model_id)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 text-slate-400 text-xs font-medium rounded-xl transition border border-slate-700">
+                        🗑️
+                      </button>
+                    </template>
+                  </div>
                 </template>
               </div>
             </div>
@@ -194,7 +198,102 @@
       </div>
     </section>
 
-    <!-- TAB 2: HARDWARE & STORAGE -->
+    <!-- TAB 2: INTERACTIVE MODEL PLAYGROUND -->
+    <section x-show="tab === 'playground'" x-cloak class="space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-white">Interactive Model Playground</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Direct prompt execution and chat with your downloaded models.</p>
+        </div>
+
+        <!-- Model Selector Dropdown -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-slate-400">Active Model:</label>
+          <select x-model="chatModelId" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-emerald-400 font-medium focus:outline-none focus:border-emerald-500">
+            <template x-for="m in installedModels" :key="m.model_id">
+              <option :value="m.model_id" x-text="m.name + ' (' + m.parameter_size + ')'"></option>
+            </template>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Chat History Window (3 cols) -->
+        <div class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-[580px] overflow-hidden">
+          
+          <!-- Message Stream -->
+          <div class="flex-1 p-5 overflow-y-auto space-y-4">
+            <template x-for="(msg, idx) in chatMessages" :key="idx">
+              <div class="flex" :class="msg.role === 'user' ? 'justify-end' : 'justify-start'">
+                <div class="max-w-[80%] rounded-2xl px-4 py-3 text-xs" :class="msg.role === 'user' ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-slate-950 border border-slate-800 text-slate-200 rounded-bl-none'">
+                  <div class="flex justify-between items-center mb-1 text-[10px] opacity-75 font-mono">
+                    <span x-text="msg.role === 'user' ? 'You' : (msg.model_name || 'Model')"></span>
+                    <span x-text="msg.meta || ''"></span>
+                  </div>
+                  <p class="whitespace-pre-wrap leading-relaxed" x-text="msg.text"></p>
+                </div>
+              </div>
+            </template>
+
+            <template x-if="chatLoading">
+              <div class="flex justify-start">
+                <div class="bg-slate-950 border border-slate-800 text-slate-400 rounded-2xl px-4 py-3 text-xs flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  Generating local inference on CPU...
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Prompt Input Box -->
+          <div class="p-4 border-t border-slate-800 bg-slate-950/60">
+            <form @submit.prevent="sendChatMessage()" class="flex gap-2">
+              <input type="text" x-model="chatInput" placeholder="Ask anything to the local model..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500" :disabled="chatLoading">
+              <button type="submit" :disabled="chatLoading || !chatInput.trim()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold rounded-xl text-xs transition flex items-center gap-1.5">
+                <span>Send</span>
+              </button>
+            </form>
+          </div>
+
+        </div>
+
+        <!-- Sidebar Parameter Knobs (1 col) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <h3 class="text-xs font-bold text-white uppercase tracking-wider">Inference Parameters</h3>
+          
+          <div class="space-y-4 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">System Instructions</label>
+              <textarea x-model="chatSystemPrompt" rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 text-xs focus:outline-none focus:border-emerald-500"></textarea>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-slate-400 mb-1">
+                <span>Temperature</span>
+                <span class="font-mono text-emerald-400" x-text="chatTemperature"></span>
+              </div>
+              <input type="range" min="0.0" max="1.0" step="0.05" x-model="chatTemperature" class="w-full accent-emerald-500">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-slate-400 mb-1">
+                <span>Max Tokens</span>
+                <span class="font-mono text-emerald-400" x-text="chatMaxTokens"></span>
+              </div>
+              <input type="range" min="64" max="2048" step="64" x-model="chatMaxTokens" class="w-full accent-emerald-500">
+            </div>
+
+            <div class="pt-3 border-t border-slate-800">
+              <button @click="chatMessages = []" class="w-full py-2 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-xl text-xs transition border border-slate-800">
+                Clear Chat History
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: HARDWARE & STORAGE -->
     <section x-show="tab === 'hardware'" x-cloak class="space-y-6">
       <h2 class="text-xl font-bold text-white">Hardware Discovery & Disk Storage</h2>
 
@@ -252,7 +351,7 @@
       </div>
     </section>
 
-    <!-- TAB 3: ROUTER STUDIO -->
+    <!-- TAB 4: ROUTER STUDIO -->
     <section x-show="tab === 'router'" x-cloak class="space-y-6">
       <h2 class="text-xl font-bold text-white">AI Router Interactive Studio</h2>
       <p class="text-xs text-slate-400">Test capability-driven model routing in real time.</p>
@@ -324,7 +423,7 @@
       </div>
     </section>
 
-    <!-- TAB 4: TELEMETRY -->
+    <!-- TAB 5: TELEMETRY -->
     <section x-show="tab === 'telemetry'" x-cloak class="space-y-6">
       <h2 class="text-xl font-bold text-white">Live Router Telemetry & Observability</h2>
 
@@ -367,7 +466,7 @@
                   <td class="px-6 py-3 font-mono text-slate-400" x-text="t.trace_id"></td>
                   <td class="px-6 py-3 capitalize" x-text="t.task_requirements.task_type"></td>
                   <td class="px-6 py-3 text-white font-medium" x-text="t.executed_model_id"></td>
-                  <td class="px-6 py-3" x-text="t.fallback_invoked ? '?? Yes' : 'No'"></td>
+                  <td class="px-6 py-3" x-text="t.fallback_invoked ? '⚠️ Yes' : 'No'"></td>
                   <td class="px-6 py-3 font-mono" x-text="t.latency_ms + 'ms'"></td>
                   <td class="px-6 py-3 font-mono" x-text="'$' + t.estimated_cost_usd"></td>
                 </tr>
@@ -390,6 +489,19 @@
         telemetry: { total_routed_tasks: 0, average_latency_ms: 0, total_estimated_cost_usd: 0, recent_traces: [] },
         search: '',
         selectedModality: '',
+        
+        // Playground Chat state
+        chatModelId: 'bitnet_b1_58_2b',
+        chatInput: '',
+        chatSystemPrompt: 'You are a fast, private, local AI assistant running on BitNet AI Runtime.',
+        chatTemperature: 0.7,
+        chatMaxTokens: 512,
+        chatMessages: [
+          { role: 'assistant', text: 'Hello! I am your local AI assistant running on CPU. How can I help you today?', model_name: 'BitNet b1.58' }
+        ],
+        chatLoading: false,
+
+        // Router state
         routerTaskType: 'classification',
         routerPrompt: 'Classify this inquiry: Urgent need for 50 commercial licenses',
         routerResult: null,
@@ -408,6 +520,11 @@
           try {
             const res = await fetch('/api/v1/garden/models');
             this.models = await res.json();
+            // Default active model to first installed
+            const inst = this.installedModels;
+            if (inst.length > 0 && !inst.some(m => m.model_id === this.chatModelId)) {
+              this.chatModelId = inst[0].model_id;
+            }
           } catch(e) { console.error(e); }
         },
 
@@ -440,6 +557,15 @@
           });
         },
 
+        get installedModels() {
+          return this.models.filter(m => m.status === 'installed' || m.provider_backend === 'mock');
+        },
+
+        openPlayground(modelId) {
+          this.chatModelId = modelId;
+          this.tab = 'playground';
+        },
+
         async installModel(id) {
           const target = this.models.find(m => m.model_id === id);
           if (target) {
@@ -447,7 +573,6 @@
             target.download_progress = { percentage: 0.0, speed_mb_s: 0.0, eta_seconds: 0.0, status: 'downloading' };
           }
 
-          // Open SSE stream first
           const es = new EventSource(`/api/v1/garden/models/${id}/events`);
           const handleUpdate = (data) => {
             if (target) {
@@ -481,6 +606,42 @@
             await fetch(`/api/v1/garden/models/${id}`, { method: 'DELETE' });
             await this.loadAll();
           } catch(e) { console.error(e); }
+        },
+
+        async sendChatMessage() {
+          if (!this.chatInput.trim() || this.chatLoading) return;
+          const userText = this.chatInput.trim();
+          this.chatMessages.push({ role: 'user', text: userText });
+          this.chatInput = '';
+          this.chatLoading = true;
+
+          try {
+            const res = await fetch(`/api/v1/garden/models/${this.chatModelId}/chat`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                prompt: userText,
+                system_prompt: this.chatSystemPrompt,
+                temperature: parseFloat(this.chatTemperature),
+                max_tokens: parseInt(this.chatMaxTokens)
+              })
+            });
+            const data = await res.json();
+            this.chatMessages.push({
+              role: 'assistant',
+              text: data.text,
+              model_name: data.model_name || this.chatModelId,
+              meta: `${data.latency_ms}ms • ${data.tokens_used} toks`
+            });
+          } catch(e) {
+            this.chatMessages.push({
+              role: 'assistant',
+              text: `Error connecting to model: ${e.message}`,
+              model_name: 'System'
+            });
+          } finally {
+            this.chatLoading = false;
+          }
         },
 
         async executeRoute() {

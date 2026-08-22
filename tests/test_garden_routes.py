@@ -41,3 +41,14 @@ def test_dashboard_route(client):
     res = client.get("/dashboard")
     assert res.status_code == 200
     assert "BitNet AI Runtime" in res.text
+
+def test_direct_model_chat_endpoint(client):
+    res = client.post(
+        "/api/v1/garden/models/mock_local_engine/chat",
+        json={"prompt": "Hello mock model!", "temperature": 0.5},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "text" in data
+    assert "model_id" in data
+    assert data["model_id"] == "mock_local_engine"

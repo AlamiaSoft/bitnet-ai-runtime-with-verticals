@@ -49,7 +49,7 @@ async def test_model_lifecycle_install_uninstall(tmp_path):
     assert manager.get_status(model_id) == ModelStatus.AVAILABLE
 
     # 2. Trigger installation
-    success = await manager.install_model(model_id)
+    success = await manager.install_model(model_id, force_simulation=True)
     assert success is True
     assert manager.get_status(model_id) == ModelStatus.INSTALLED
     assert manager.get_model_file_path(model_id).exists()

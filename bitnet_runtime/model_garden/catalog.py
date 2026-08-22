@@ -78,6 +78,7 @@ class ModelGarden:
                 typical_latency_ms=110.0,
                 license="MIT",
                 description="Ultra-efficient 1-bit ternary SLM optimized for continuous CPU inference.",
+                download_url="https://huggingface.co/microsoft/BitNet-b1.58-2B-4T-GGUF/resolve/main/ggml-model-i2_s.gguf",
             )
         )
 
@@ -112,6 +113,7 @@ class ModelGarden:
                 typical_latency_ms=180.0,
                 license="Apache-2.0",
                 description="Lightweight multilingual powerhouse with exceptional structured extraction and JSON output capabilities.",
+                download_url="https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf",
             )
         )
 
@@ -146,6 +148,7 @@ class ModelGarden:
                 typical_latency_ms=380.0,
                 license="MIT",
                 description="State-of-the-art small reasoning model excelling at multi-step logic and synthesis.",
+                download_url="https://huggingface.co/microsoft/Phi-3.5-mini-instruct-GGUF/resolve/main/Phi-3.5-mini-instruct-Q4_K_M.gguf",
             )
         )
 
@@ -179,6 +182,7 @@ class ModelGarden:
                 typical_latency_ms=220.0,
                 license="Gemma License",
                 description="Highly capable conversational and creative instruction-tuned compact model.",
+                download_url="https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf",
             )
         )
 
@@ -212,6 +216,7 @@ class ModelGarden:
                 typical_latency_ms=310.0,
                 license="Llama 3.2 Community",
                 description="Edge-focused multimodal-ready instruction model with 128k context.",
+                download_url="https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf",
             )
         )
 
@@ -243,6 +248,7 @@ class ModelGarden:
                 license="MIT",
                 description="Compact 384-dimensional dense embedding model for semantic vector search.",
                 metadata={"vector_dim": 384},
+                download_url="https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/model.safetensors",
             )
         )
 
@@ -270,6 +276,7 @@ class ModelGarden:
                 license="Apache-2.0",
                 description="Industry standard lightweight embedding model for high-throughput search.",
                 metadata={"vector_dim": 384},
+                download_url="https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/model.safetensors",
             )
         )
 

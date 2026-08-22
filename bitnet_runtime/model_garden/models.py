@@ -63,6 +63,8 @@ class ModelManifest:
     typical_latency_ms: float = 200.0
     license: str = "MIT / Apache-2.0"
     description: str = ""
+    download_url: Optional[str] = None
+    sha256_checksum: Optional[str] = None
     is_healthy: bool = True
     metadata: Dict[str, Any] = field(default_factory=dict)
 
