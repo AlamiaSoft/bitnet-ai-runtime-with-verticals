@@ -22,7 +22,7 @@ from ...inference import (
     LocalEndpointEngine,
     MockInferenceEngine,
 )
-import numpy as np
+from ...execution import execution_registry
 from ...config import config
 from ..telemetry import telemetry_collector
 
@@ -153,19 +153,18 @@ async def chat_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, A
 
     start_time = time.time()
     try:
-        # Route to appropriate engine
-        provider = manifest.provider_backend
-        engine = _get_engine(provider)
-        resp = await engine.complete(
+        resp = await execution_registry.complete(
+            manifest=manifest,
             prompt=prompt,
             system_prompt=system_prompt,
             temperature=temperature,
             max_tokens=max_tokens,
+            auto_load=True,
         )
         latency = round((time.time() - start_time) * 1000.0, 1)
-
         tokens = resp.usage.total_tokens if resp.usage else (len(prompt.split()) + len(resp.text.split()))
         cost = 0.0 if manifest.cost_per_1k_input == 0.0 else round(0.002, 5)
+
         telemetry_collector.record_direct_chat(
             model_id=model_id,
             prompt=prompt,
@@ -183,30 +182,14 @@ async def chat_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, A
             "latency_ms": latency,
             "tokens_used": tokens,
             "cost_usd": cost,
-            "provider": provider,
+            "provider": manifest.provider_backend,
         }
     except Exception as e:
         latency = round((time.time() - start_time) * 1000.0, 1)
-        tokens = len(prompt.split()) + 25
-        fallback_msg = f"[{manifest.name} Response]: Processed prompt: '{prompt}'. (Inference completed locally on CPU)."
-        telemetry_collector.record_direct_chat(
-            model_id=model_id,
-            prompt=prompt,
-            response_text=fallback_msg,
-            latency_ms=latency,
-            tokens_used=tokens,
-            cost_usd=0.0,
-            task_type="fallback_chat",
+        raise HTTPException(
+            status_code=500,
+            detail=f"Inference failed on model '{model_id}': {e}",
         )
-        return {
-            "model_id": model_id,
-            "model_name": manifest.name,
-            "text": fallback_msg,
-            "latency_ms": latency,
-            "tokens_used": tokens,
-            "cost_usd": 0.0,
-            "provider": manifest.provider_backend,
-        }
 
 @router.post("/models/{model_id}/embed")
 async def embed_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -219,19 +202,25 @@ async def embed_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, 
     text_b = payload.get("text_b", None)
 
     start_time = time.time()
-    dim = manifest.context_window if (manifest.context_window and manifest.context_window <= 768) else 384
-    embedder = BitNetEmbeddingEngine(dim=dim)
-    res_a = await embedder.embed_text(text_a)
+    texts = [text_a]
+    if text_b:
+        texts.append(text_b)
+
+    responses = await execution_registry.embed(
+        manifest=manifest,
+        texts=texts,
+        auto_load=True,
+    )
+    res_a = responses[0]
 
     similarity = None
-    res_b = None
-    if text_b:
-        res_b = await embedder.embed_text(text_b)
-        v_a = np.array(res_a.vector)
-        v_b = np.array(res_b.vector)
-        dot = float(np.dot(v_a, v_b))
-        norm_a = float(np.linalg.norm(v_a))
-        norm_b = float(np.linalg.norm(v_b))
+    if text_b and len(responses) > 1:
+        res_b = responses[1]
+        v_a = res_a.vector
+        v_b = res_b.vector
+        dot = sum(a * b for a, b in zip(v_a, v_b))
+        norm_a = sum(a * a for a in v_a) ** 0.5
+        norm_b = sum(b * b for b in v_b) ** 0.5
         similarity = dot / (norm_a * norm_b + 1e-9)
 
     latency = round((time.time() - start_time) * 1000.0, 1)

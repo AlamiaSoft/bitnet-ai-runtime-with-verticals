@@ -8,6 +8,7 @@ from ..logging import logger
 from pathlib import Path
 from fastapi.responses import FileResponse, RedirectResponse
 from .routes.agents import router as agents_router
+from .routes.execution import router as execution_router
 from .routes.garden import router as garden_router
 from .routes.memory import router as memory_router
 from .routes.router import router as router_routes
@@ -42,6 +43,7 @@ def create_app() -> FastAPI:
     app.include_router(webhooks_router, prefix="/api/v1")
     app.include_router(garden_router)
     app.include_router(router_routes)
+    app.include_router(execution_router)
 
     dashboard_file = Path(__file__).parent / "static" / "dashboard.html"
 

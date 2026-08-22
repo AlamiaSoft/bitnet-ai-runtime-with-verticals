@@ -74,6 +74,9 @@ class ModelLifecycleManager:
     def get_status(self, model_id: str) -> ModelStatus:
         if model_id in self._active_downloads:
             return self._active_downloads[model_id].status
+        from ..execution import execution_registry
+        if execution_registry.is_model_loaded(model_id):
+            return ModelStatus.LOADED
         return self._model_states.get(model_id, ModelStatus.AVAILABLE)
 
     def get_download_progress(self, model_id: str) -> Optional[DownloadProgress]:
@@ -241,7 +244,31 @@ class ModelLifecycleManager:
                 target_file.unlink(missing_ok=True)
             return False
 
+    async def load_model(self, model_id: str) -> bool:
+        manifest = self.garden.get(model_id)
+        if not manifest:
+            return False
+        model_path = self.get_model_file_path(model_id)
+        path_str = str(model_path) if model_path.exists() else None
+        from ..execution import execution_registry
+        await execution_registry.load_model(manifest, path_str)
+        self._model_states[model_id] = ModelStatus.LOADED
+        logger.info(f"Model '{model_id}' successfully loaded to RAM.")
+        return True
+
+    async def unload_model(self, model_id: str) -> bool:
+        from ..execution import execution_registry
+        unloaded = await execution_registry.unload_model(model_id)
+        if unloaded:
+            self._model_states[model_id] = ModelStatus.INSTALLED
+            logger.info(f"Model '{model_id}' unloaded from RAM.")
+            return True
+        return False
+
     def uninstall_model(self, model_id: str) -> bool:
+        from ..execution import execution_registry
+        if execution_registry.is_model_loaded(model_id):
+            asyncio.create_task(execution_registry.unload_model(model_id))
         target_file = self.get_model_file_path(model_id)
         if target_file.exists():
             target_file.unlink(missing_ok=True)

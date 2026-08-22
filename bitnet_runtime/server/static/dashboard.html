@@ -42,6 +42,7 @@
       <nav class="flex space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-medium">
         <button @click="tab = 'garden'" :class="tab === 'garden' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">🌸 Model Garden</button>
         <button @click="tab = 'playground'" :class="tab === 'playground' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">💬 Model Playground</button>
+        <button @click="tab = 'fabric'" :class="tab === 'fabric' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">⚡ Execution Fabric</button>
         <button @click="tab = 'hardware'" :class="tab === 'hardware' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">💾 Hardware & Storage</button>
         <button @click="tab = 'router'" :class="tab === 'router' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">⚙️ Router Studio</button>
         <button @click="tab = 'telemetry'" :class="tab === 'telemetry' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">📊 Telemetry & Logs</button>
@@ -93,10 +94,11 @@
 
                   <!-- Status Badge -->
                   <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="{
-                    'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30': m.status === 'installed',
+                    'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold': m.status === 'loaded',
+                    'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20': m.status === 'installed',
                     'bg-slate-800 text-slate-400': m.status === 'available',
                     'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20': m.status === 'downloading'
-                  }" x-text="m.status"></span>
+                  }" x-text="m.status === 'loaded' ? '⚡ LOADED IN RAM' : m.status"></span>
                 </div>
               </div>
 
@@ -174,24 +176,35 @@
                   </button>
                 </template>
 
-                <template x-if="m.status === 'installed'">
-                  <div class="flex items-center gap-2">
-                    <!-- If Generative SLM: Chat Button -->
+                <template x-if="m.status === 'installed' || m.status === 'loaded'">
+                  <div class="flex items-center gap-1.5">
+                    <!-- Load/Unload Toggle -->
+                    <template x-if="m.status === 'installed'">
+                      <button @click="loadModelToRam(m.model_id)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl transition border border-slate-700 flex items-center gap-1">
+                        <span>⚡</span> Load
+                      </button>
+                    </template>
+                    <template x-if="m.status === 'loaded'">
+                      <button @click="unloadModelFromRam(m.model_id)" class="px-2.5 py-1.5 bg-rose-950/40 text-rose-300 hover:bg-rose-900/60 text-xs font-medium rounded-xl transition border border-rose-800/40 flex items-center gap-1">
+                        <span>🛑</span> Unload
+                      </button>
+                    </template>
+
+                    <!-- Modality Action -->
                     <template x-if="m.modality === 'generative_text'">
                       <button @click="openPlayground(m.model_id)" class="px-3 py-1.5 bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600 hover:text-white border border-emerald-500/30 text-xs font-medium rounded-xl transition flex items-center gap-1">
                         <span>💬</span> Chat
                       </button>
                     </template>
 
-                    <!-- If Embedding Model: Test Vector Button -->
                     <template x-if="m.modality === 'embedding'">
                       <button @click="openEmbeddingTester(m.model_id)" class="px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600 hover:text-white border border-blue-500/30 text-xs font-medium rounded-xl transition flex items-center gap-1">
-                        <span>📐</span> Test Vector
+                        <span>📐</span> Vector
                       </button>
                     </template>
 
                     <template x-if="m.provider_backend !== 'mock'">
-                      <button @click="uninstallModel(m.model_id)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 text-slate-400 text-xs font-medium rounded-xl transition border border-slate-700">
+                      <button @click="uninstallModel(m.model_id)" class="px-2 py-1.5 bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 text-slate-400 text-xs font-medium rounded-xl transition border border-slate-700">
                         🗑️
                       </button>
                     </template>
@@ -205,7 +218,7 @@
       </div>
     </section>
 
-    <!-- TAB 2: INTERACTIVE MODEL PLAYGROUND (FOR GENERATIVE SLMS) -->
+    <!-- TAB 2: INTERACTIVE MODEL PLAYGROUND -->
     <section x-show="tab === 'playground'" x-cloak class="space-y-6">
       <div class="flex justify-between items-center">
         <div>
@@ -300,6 +313,91 @@
       </div>
     </section>
 
+    <!-- TAB 3: EXECUTION FABRIC (NEW) -->
+    <section x-show="tab === 'fabric'" x-cloak class="space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-white">Execution Fabric & Serving Engines</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Real-time status of mature OSS serving engines (llama.cpp, TEI, bitnet-server).</p>
+        </div>
+        <button @click="loadFabric()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl text-xs flex items-center gap-1.5 transition">
+          <span>🔄</span> Refresh Engines
+        </button>
+      </div>
+
+      <!-- Engine Status Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- llama.cpp -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-white text-sm">llama.cpp server</span>
+            <span class="text-xs px-2 py-0.5 rounded-full font-mono font-medium" :class="fabric.backends && fabric.backends.llamacpp && fabric.backends.llamacpp.status === 'online' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500'" x-text="fabric.backends && fabric.backends.llamacpp ? fabric.backends.llamacpp.status : 'offline'"></span>
+          </div>
+          <p class="text-xs text-slate-400">Primary CPU/edge engine for GGUF generative models and multi-model router.</p>
+          <div class="pt-2 text-[11px] font-mono text-slate-500 border-t border-slate-800">
+            Endpoint: <span class="text-slate-300" x-text="fabric.backends && fabric.backends.llamacpp ? fabric.backends.llamacpp.endpoint_url : 'http://localhost:8080'"></span>
+          </div>
+        </div>
+
+        <!-- TEI -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-white text-sm">Hugging Face TEI</span>
+            <span class="text-xs px-2 py-0.5 rounded-full font-mono font-medium" :class="fabric.backends && fabric.backends.tei && fabric.backends.tei.status === 'online' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500'" x-text="fabric.backends && fabric.backends.tei ? fabric.backends.tei.status : 'offline'"></span>
+          </div>
+          <p class="text-xs text-slate-400">High-throughput microsecond batch embeddings and sequence rerankers.</p>
+          <div class="pt-2 text-[11px] font-mono text-slate-500 border-t border-slate-800">
+            Endpoint: <span class="text-slate-300" x-text="fabric.backends && fabric.backends.tei ? fabric.backends.tei.endpoint_url : 'http://localhost:8081'"></span>
+          </div>
+        </div>
+
+        <!-- BitNet Sidecar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-white text-sm">BitNet 1-bit Sidecar</span>
+            <span class="text-xs px-2 py-0.5 rounded-full font-mono font-medium" :class="fabric.backends && fabric.backends.bitnet_sidecar && fabric.backends.bitnet_sidecar.status === 'online' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500'" x-text="fabric.backends && fabric.backends.bitnet_sidecar ? fabric.backends.bitnet_sidecar.status : 'offline'"></span>
+          </div>
+          <p class="text-xs text-slate-400">Microsoft BitNet b1.58 native ternary kernel container sidecar.</p>
+          <div class="pt-2 text-[11px] font-mono text-slate-500 border-t border-slate-800">
+            Endpoint: <span class="text-slate-300" x-text="fabric.backends && fabric.backends.bitnet_sidecar ? fabric.backends.bitnet_sidecar.endpoint_url : 'http://localhost:8080'"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Loaded Models Memory Breakdown -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-semibold text-white">Active RAM Model Allocations</h3>
+          <span class="text-xs font-mono text-emerald-400 font-bold" x-text="'Total RAM in Use: ' + (fabric.total_ram_used_mb || 0) + ' MB'"></span>
+        </div>
+
+        <template x-if="memory.instances && memory.instances.length > 0">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <template x-for="inst in memory.instances" :key="inst.model_id">
+              <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                <div>
+                  <div class="font-bold text-white font-mono" x-text="inst.model_id"></div>
+                  <div class="text-[10px] text-slate-400 mt-0.5" x-text="'Backend: ' + inst.backend_type + ' | Device: ' + inst.device"></div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="font-mono text-emerald-400 font-bold" x-text="inst.ram_usage_mb + ' MB'"></span>
+                  <button @click="unloadModelFromRam(inst.model_id)" class="px-2.5 py-1 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-[11px] font-medium rounded-lg border border-rose-800/40">
+                    Unload
+                  </button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <template x-if="!memory.instances || memory.instances.length === 0">
+          <div class="text-center py-8 text-xs text-slate-500">
+            No models are currently loaded into memory. Click "⚡ Load" on any installed model in the Model Garden to allocate into RAM.
+          </div>
+        </template>
+      </div>
+    </section>
+
     <!-- EMBEDDING & SEMANTIC SIMILARITY MODAL -->
     <div x-show="showEmbedModal" x-cloak class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl relative">
@@ -351,7 +449,7 @@
       </div>
     </div>
 
-    <!-- TAB 3: HARDWARE & STORAGE -->
+    <!-- TAB 4: HARDWARE & STORAGE -->
     <section x-show="tab === 'hardware'" x-cloak class="space-y-6">
       <h2 class="text-xl font-bold text-white">Hardware Discovery & Disk Storage</h2>
 
@@ -409,7 +507,7 @@
       </div>
     </section>
 
-    <!-- TAB 4: ROUTER STUDIO -->
+    <!-- TAB 5: ROUTER STUDIO -->
     <section x-show="tab === 'router'" x-cloak class="space-y-6">
       <h2 class="text-xl font-bold text-white">AI Router Interactive Studio</h2>
       <p class="text-xs text-slate-400">Test capability-driven model routing in real time.</p>
@@ -481,7 +579,7 @@
       </div>
     </section>
 
-    <!-- TAB 5: TELEMETRY & LOGS -->
+    <!-- TAB 6: TELEMETRY & LOGS -->
     <section x-show="tab === 'telemetry'" x-cloak class="space-y-6">
       <div class="flex justify-between items-center">
         <div>
@@ -574,6 +672,8 @@
         models: [],
         hardware: {},
         storage: {},
+        fabric: { backends: {}, total_loaded_models: 0, total_ram_used_mb: 0 },
+        memory: { instances: [], total_ram_used_mb: 0 },
         telemetry: { total_routed_tasks: 0, average_latency_ms: 0, total_estimated_cost_usd: 0, recent_traces: [] },
         search: '',
         selectedModality: '',
@@ -605,11 +705,14 @@
 
         async init() {
           await this.loadAll();
-          setInterval(() => this.loadTelemetry(), 4000);
+          setInterval(() => {
+            this.loadTelemetry();
+            this.loadFabric();
+          }, 4000);
         },
 
         async loadAll() {
-          await Promise.all([this.loadModels(), this.loadHardware(), this.loadStorage(), this.loadTelemetry()]);
+          await Promise.all([this.loadModels(), this.loadHardware(), this.loadStorage(), this.loadFabric(), this.loadTelemetry()]);
         },
 
         async loadModels() {
@@ -620,6 +723,17 @@
             if (inst.length > 0 && !inst.some(m => m.model_id === this.chatModelId)) {
               this.chatModelId = inst[0].model_id;
             }
+          } catch(e) { console.error(e); }
+        },
+
+        async loadFabric() {
+          try {
+            const [resFab, resMem] = await Promise.all([
+              fetch('/api/v1/execution/backends'),
+              fetch('/api/v1/execution/memory')
+            ]);
+            this.fabric = await resFab.json();
+            this.memory = await resMem.json();
           } catch(e) { console.error(e); }
         },
 
@@ -653,7 +767,7 @@
         },
 
         get installedGenerativeModels() {
-          return this.models.filter(m => (m.status === 'installed' || m.provider_backend === 'mock') && m.modality === 'generative_text');
+          return this.models.filter(m => (m.status === 'installed' || m.status === 'loaded' || m.provider_backend === 'mock') && m.modality === 'generative_text');
         },
 
         openPlayground(modelId) {
@@ -665,6 +779,20 @@
           this.embedModelId = modelId;
           this.showEmbedModal = true;
           this.embedResult = null;
+        },
+
+        async loadModelToRam(id) {
+          try {
+            await fetch(`/api/v1/execution/models/${id}/load`, { method: 'POST' });
+            await this.loadAll();
+          } catch(e) { console.error(e); }
+        },
+
+        async unloadModelFromRam(id) {
+          try {
+            await fetch(`/api/v1/execution/models/${id}/unload`, { method: 'POST' });
+            await this.loadAll();
+          } catch(e) { console.error(e); }
         },
 
         async testEmbedding() {

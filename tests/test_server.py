@@ -3,7 +3,9 @@ from fastapi.testclient import TestClient
 from bitnet_runtime.server.app import create_app
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+    from bitnet_runtime.config import config
+    monkeypatch.setattr(config.inference, "default_provider", "mock")
     app = create_app()
     return TestClient(app)
 
