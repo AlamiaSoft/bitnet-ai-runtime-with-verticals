@@ -1,67 +1,87 @@
-# BitNet AI Runtime Architecture
+# Alamia Local AI Runtime Architecture
 
 ## 1. Executive Summary
-BitNet AI Runtime is a local, privacy-preserving, zero-cloud-cost agent execution framework designed to harness 1-bit and extreme-quantization LLMs (such as Microsoft BitNet b1.58, 2.4B BitNet, and quantized edge models). 
+**Alamia Local AI Runtime** is a local-first AI runtime designed for running capable AI models on everyday hardware ? without requiring a GPU or cloud AI APIs.
 
-Instead of treating 1-bit LLMs as simple chat interfaces, the architecture leverages the unique economics of continuous local CPU inference to run autonomous background agents, continuous observation, persistent episodic/semantic memory, and vertical business solutions.
+The platform is structured around 5 foundational pillars:
+1. **?? Alamia Model Garden**: Curated catalog of high-efficiency 1?4B SLMs, vector embeddings, and sequence rerankers.
+2. **?? Alamia AI Router**: Capability-aware routing engine selecting optimal models based on task requirements, privacy, and budget.
+3. **? Alamia Inference Fabric**: Pluggable inference layer orchestrating mature OSS engines (`llama.cpp`, Microsoft `bitnet-server`, Hugging Face `TEI`).
+4. **?? Alamia AI Employees**: Autonomous digital workers with persistent identities, task queues, and human approval gates.
+5. **?? Alamia AI Verticals**: Modular business applications discovered dynamically via plugin contracts.
+
+```text
+                    ALAMIA LOCAL AI RUNTIME (:8000)
+                                   ?
+         ?????????????????????????????????????????????????????
+         ?                         ?                         ?
+  Alamia Model Garden       Alamia AI Router        Alamia AI Verticals
+  (Curated SLM Catalog)   (Capability Selector)   (AI Employees & Auto)
+         ?                         ?                         ?
+         ?????????????????????????????????????????????????????
+                                   ?
+                        Alamia Inference Fabric
+                                   ?
+              ???????????????????????????????????????????
+              ?                    ?                    ?
+       llama.cpp Engine     BitNet 1-bit Engine     TEI Engine
+      (Primary Foundation:   (Specialized 1-bit     (High-Throughput
+       SLMs, Embed, Rerank)   Ternary Kernel)        Batch Embeddings)
+              ?                    ?                    ?
+        Qwen, Phi, Gemma       BitNet 2B-4T         BGE Embeddings
+```
 
 ---
 
 ## 2. Core Architectural Invariants
-1. **Local-First & Offline Capable**: Zero mandatory external cloud dependencies or API keys for primary operation. All vector embeddings, document parsing, state transitions, and inference run on commodity CPU/hardware.
+1. **Local-First, CPU-First, Cloud-Optional**: Primary operations run on commodity CPU and host RAM without requiring external cloud APIs. When needed, the AI Router can escalate to cloud frontier models.
 2. **Decoupled Dual-Layer Separation**:
-   - **Engine Layer (`bitnet_runtime`)**: Model Garden, Lifecycle Manager, AI Router, vector & SQLite memory, ReAct loop, tool sandbox, scheduler, local REST/SSE server, interactive web dashboard, security policy engine, and dynamic plugin registry. Zero static compile-time imports of vertical applications.
-   - **Vertical Layer (`verticals`)**: Domain-specific agents (AI Employee, Personal Memory OS, AI Computer, AI WhatsApp Employee, QA Box) implementing `VerticalPluginContract` and `VerticalManifest`. Discovered dynamically via `VerticalRegistry` and Python entry points (`bitnet.plugins`).
-3. **Pluggable Inference Abstraction**: Uniform interface (`InferenceEngine`) supporting native BitNet runners (`bitnet.cpp` / `bitnet-server` container on `localhost:8080`), quantized GGUF (`llama.cpp`), and local mock/endpoint fallbacks (`LocalEndpointEngine`).
-4. **Deterministic Security Policy Engine**: All OS/filesystem/shell/browser operations pass through `SecurityPolicyEngine` enforcing strict capability evaluation (`ALLOW`, `DENY`, `ASK`), critical execution pattern detection, subshell parsing, and workspace path confinement.
-5. **Environment-Driven Configuration**: All parameters, model paths, ports, and provider selections are managed via `pydantic-settings` and `.env` environment variables.
+   - **Runtime Core (`bitnet_runtime`)**: Model Garden, AI Router, Inference Fabric, Memory, Security Policy, ReAct Loop, Server, Dashboard, and Plugin Registry.
+   - **Vertical Layer (`verticals`)**: Modular business applications discovered dynamically via entry points (`bitnet.plugins`).
+3. **Inference Fabric Abstraction**: The runtime never hardcodes inference to a single binary. `ExecutionRegistry` dynamically resolves backend drivers (`llama.cpp`, `bitnet-server`, `TEI`, `mock`) with explicit model load/unload lifecycle and zero silent fallbacks.
+4. **Deterministic Security Guardrails**: All tool and system operations are evaluated by `SecurityPolicyEngine` enforcing `ALLOW`, `DENY`, and `ASK` boundaries.
+5. **Full Observability & Telemetry**: Every execution records task requirements, decision traces, prompts, responses, latencies, tokens, and costs.
 
 ---
 
 ## 3. Subsystem Responsibilities
 
-### 3.1 Model Garden & Lifecycle Subsystem (`bitnet_runtime.model_garden`)
-- `ModelGarden`: Curated catalog of machine-readable manifests (`ModelManifest`) for CPU-friendly 1?4B SLMs (BitNet b1.58, Qwen 2.5, Phi-3.5 Mini, Gemma 2, LLaMA 3.2), dedicated embedding models (BGE Small, MiniLM, BitNet hash), and specialized rerankers.
-- `ModelLifecycleManager`: Real model acquisition engine with chunked streaming downloads, SHA256 checksums, disk storage quotas (`./models/`), and state machine (`AVAILABLE ? DOWNLOADING ? INSTALLED ? LOADED ? REMOVED`).
-- `HardwareDiscoveryEngine`: Host CPU architecture, SIMD extensions (AVX2, AVX512, NEON), and physical RAM discovery computing compatibility matrix (`COMPATIBLE`, `RAM_CONSTRAINED`, `INCOMPATIBLE`).
+### 3.1 Alamia Model Garden & Lifecycle (`bitnet_runtime.model_garden`)
+- `ModelGarden`: Catalog of machine-readable manifests (`ModelManifest`) for CPU-friendly 1?4B SLMs (BitNet b1.58, Qwen 2.5, Phi-3.5, Gemma 2), dedicated embeddings (BGE Small, MiniLM), and rerankers.
+- `ModelLifecycleManager`: Real model downloader with chunked HTTP streaming, checksum verification, disk quotas (`./models/`), and state transitions (`AVAILABLE ? DOWNLOADING ? INSTALLED ? LOADED ? UNLOADED ? REMOVED`).
+- `HardwareDiscoveryEngine`: Host CPU architecture, SIMD extensions (AVX2, AVX512, NEON), and physical RAM evaluation.
 
-### 3.2 AI Router Subsystem (`bitnet_runtime.router`)
-- `AIRouter`: Foundational runtime primitive for capability-driven model routing across Local 1-Bit, Local Dense, and Cloud tiers.
-- `ModelCapabilityRegistry`: Dynamic capability catalog directly synchronized from `ModelGarden`.
-- `RoutingPolicyEngine`: Mathematical scoring and hard constraint filter (airgap privacy, budget limits, context fit, task benchmark ratings) generating primary selections and ordered fallback chains.
-- `RoutingTrace`: Structured execution telemetry recording candidate scores, latencies, tokens, and cost estimates.
+### 3.2 Alamia AI Router (`bitnet_runtime.router`)
+- `AIRouter`: Evaluates task requirements and routes to optimal model tier with automatic failover chains.
+- `ModelCapabilityRegistry`: Dynamic capability registry synced with Model Garden.
+- `RoutingPolicyEngine`: Mathematical scoring based on benchmark ratings, privacy constraints, and token limits.
+- `RoutingTrace`: Telemetry recording candidate scores, latencies, token usage, and cost estimates.
 
-### 3.3 Inference Subsystem (`bitnet_runtime.inference`)
-- `InferenceEngine`: Abstract contract for prompt completion and streaming token generation.
-- `BitNetEngine`: Direct HTTP driver for Microsoft BitNet server container (`localhost:8080/v1`) and local `bitnet.cpp` binaries.
-- `LlamaCppEngine`: Fallback runner for GGUF models on CPU.
-- `LocalEndpointEngine`: Adapter for local OpenAI-compatible endpoints (e.g., Ollama, LM Studio) during dev/testing.
-- `EmbeddingEngine`: Compact / 1-bit embedding generator computing cosine similarities for retrieval.
+### 3.3 Alamia Inference Fabric (`bitnet_runtime.execution`)
+- `ExecutionBackend`: Abstract interface for `load_model`, `unload_model`, `complete`, `embed`, and `rerank`.
+- `ExecutionRegistry`: Central orchestrator resolving operational engines, tracking active RAM allocations, and enforcing zero silent fallbacks.
+- `LlamaCppBackend`: Primary driver for `llama.cpp` / `llama-server` (generative SLMs, embeddings, and reranking).
+- `BitNetBackend`: Native driver for Microsoft BitNet b1.58 ternary sidecar container.
+- `TEIBackend`: Driver for Hugging Face Text Embeddings Inference.
+- `MockExecutionBackend`: Deterministic driver for offline test suites.
 
 ### 3.4 Memory Subsystem (`bitnet_runtime.memory`)
-- `EpisodicMemory`: Tracks multi-turn interaction logs, agent observations, tool invocation history, and step transcripts in SQLite.
-- `SemanticMemory`: Ingests unstructured files, chunks content, creates embeddings, and performs nearest-neighbor vector retrieval.
-- `DatabaseManager`: Thread-safe SQLite manager maintaining persistent connections for in-memory and disk-backed configurations.
-- `VectorStore`: Pure-Python / SQLite vector search store with cosine similarity.
+- `EpisodicMemory`: Tracks multi-turn dialogue history, tool traces, and session state in SQLite.
+- `SemanticMemory`: Document chunking, vector indexing, and nearest-neighbor semantic retrieval.
+- `DatabaseManager`: Thread-safe SQLite connection pool supporting disk and in-memory databases.
 
-### 3.5 Security & Tooling Subsystem (`bitnet_runtime.tools`, `bitnet_runtime.policy`)
-- `SecurityPolicyEngine`: Evaluates commands, blocks dangerous patterns (`rm -rf /`, `del /s /q`, raw disk overrides, fork bombs), parses subcommands, and validates workspace directory boundaries.
-- `RunShellTool`: Executes local terminal commands under policy engine constraints and timeouts.
+### 3.5 Security & Tools (`bitnet_runtime.tools`, `bitnet_runtime.policy`)
+- `SecurityPolicyEngine`: Evaluates commands, blocks dangerous patterns, and verifies workspace directory boundaries.
+- `RunShellTool`: Executes local terminal commands under policy guardrails.
 - `FilesystemTool`: Safe file read/write/search confined to workspace directories.
 - `BrowserTool`: Playwright-powered headless web automation.
 
 ### 3.6 Agent Subsystem (`bitnet_runtime.agent`)
-- ReAct planning and self-correction loop tailored for compact/edge LLMs with markdown fenced JSON parsing.
-- Argument-aware infinite loop detection (`detect_infinite_loop`).
-- Context injection mitigation using `<retrieved_local_context>` XML boundary tags.
-- `AgentScheduler`: Background cron and interval scheduler powered by APScheduler.
+- ReAct planning loop tailored for compact SLMs with markdown fenced JSON parsing.
+- Argument-aware infinite loop detection.
+- Context injection mitigation using `<retrieved_local_context>` XML boundaries.
 
-### 3.7 Plugin Subsystem (`bitnet_runtime.plugins`)
-- `VerticalPluginContract`: Abstract base interface defining vertical lifecycle (`initialize()`, `get_cli_handlers()`).
-- `VerticalManifest`: Structured metadata (`name`, `title`, `version`, `description`).
-- `VerticalRegistry`: Dynamic auto-discovery, Python entry point discovery (`bitnet.plugins`), and instance manager.
-
-### 3.8 Server, Web Dashboard & CLI Subsystem (`bitnet_runtime.server`, `bitnet_runtime.cli`)
-- FastAPI local daemon exposing REST APIs (`/api/v1/garden`, `/api/v1/router`, `/api/v1/agents`, `/api/v1/memory`, `/api/v1/webhooks`) and Server-Sent Events (SSE).
-- Interactive Single-Page Web Dashboard (`/dashboard`) with Model Garden catalog browser, live SSE download manager, hardware diagnostics, and telemetry visualizer.
+### 3.7 Server, Web Dashboard & CLI (`bitnet_runtime.server`, `bitnet_runtime.cli`)
+- FastAPI daemon exposing REST APIs (`/api/v1/garden`, `/api/v1/execution`, `/api/v1/router`, `/api/v1/agents`, `/api/v1/memory`, `/api/v1/webhooks`) and SSE streaming.
+- Interactive Single-Page Web Dashboard (`/dashboard`) with Model Garden, Model Playground, Inference Fabric diagnostics, Hardware & Storage, AI Router Studio, and Telemetry Logs.
 - Typer CLI providing commands (`serve`, `info`, `run`, `ingest`, `search`, `vertical`).
