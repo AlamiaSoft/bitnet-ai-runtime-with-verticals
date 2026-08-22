@@ -3,8 +3,8 @@ import asyncio
 import time
 from typing import Any, AsyncGenerator, Dict, List, Optional
 from ..config import AppConfig, config
-from ..inference.base import CompletionResponse, InferenceEngine, TokenUsage
-from ..inference.model_manager import ModelManager
+from ..execution.registry import ExecutionRegistry
+from ..inference.base import CompletionResponse, TokenUsage
 from ..logging import logger
 from .models import (
     ModelCapabilityProfile,
@@ -31,22 +31,14 @@ class AIRouter:
         self,
         registry: Optional[ModelCapabilityRegistry] = None,
         policy_engine: Optional[RoutingPolicyEngine] = None,
-        model_manager: Optional[ModelManager] = None,
+        execution_registry: Optional[ExecutionRegistry] = None,
         cfg: Optional[AppConfig] = None,
     ):
         self.config = cfg or config
         self.registry = registry or ModelCapabilityRegistry()
         self.policy_engine = policy_engine or RoutingPolicyEngine(self.registry)
-        self.model_manager = model_manager or ModelManager(self.config.inference)
-        self._engine_cache: Dict[str, InferenceEngine] = {}
-
-    def _get_engine_for_profile(self, profile: ModelCapabilityProfile) -> InferenceEngine:
-        if profile.provider in self._engine_cache:
-            return self._engine_cache[profile.provider]
-
-        engine = self.model_manager.get_inference_engine(provider=profile.provider)
-        self._engine_cache[profile.provider] = engine
-        return engine
+        self.execution_registry = execution_registry or ExecutionRegistry(use_mock_fallback_for_tests=True)
+        self._engine_cache: Dict[str, Any] = {}
 
     def infer_task_requirements(self, prompt: str, task_type: Optional[TaskType] = None) -> TaskRequirements:
         """Heuristically infers task requirements if not explicitly provided."""
@@ -111,19 +103,35 @@ class AIRouter:
             }
 
             try:
-                engine = self._get_engine_for_profile(candidate)
                 t_call_start = time.time()
+                if candidate.provider in self._engine_cache:
+                    engine = self._engine_cache[candidate.provider]
+                    resp = await asyncio.wait_for(
+                        engine.complete(
+                            prompt=prompt,
+                            system_prompt=system_prompt,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            stop_sequences=stop_sequences,
+                        ),
+                        timeout=timeout_seconds,
+                    )
+                else:
+                    manifest = self.registry.garden.get(candidate.model_id)
+                    if not manifest:
+                        raise RuntimeError(f"Manifest for '{candidate.model_id}' not found in Model Garden.")
 
-                resp = await asyncio.wait_for(
-                    engine.complete(
-                        prompt=prompt,
-                        system_prompt=system_prompt,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        stop_sequences=stop_sequences,
-                    ),
-                    timeout=timeout_seconds,
-                )
+                    resp = await asyncio.wait_for(
+                        self.execution_registry.complete(
+                            manifest=manifest,
+                            prompt=prompt,
+                            system_prompt=system_prompt,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            stop_sequences=stop_sequences,
+                        ),
+                        timeout=timeout_seconds,
+                    )
 
                 t_call_end = time.time()
                 call_duration_ms = (t_call_end - t_call_start) * 1000.0

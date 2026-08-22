@@ -69,12 +69,14 @@ class LlamaCppEngine(InferenceEngine):
                 raw_output=output,
             )
 
-        # Fallback simulation
-        text = f"Simulated GGUF inference for: {prompt[:40]}..."
         return CompletionResponse(
-            text=text,
-            model="llamacpp-simulated",
-            usage=TokenUsage(prompt_tokens=len(full_prompt.split()), completion_tokens=len(text.split()), total_tokens=len(full_prompt.split()) + len(text.split())),
+            text="[llama.cpp Offline / Model Not Loaded]",
+            model="llamacpp-offline",
+            usage=TokenUsage(
+                prompt_tokens=len(full_prompt.split()),
+                completion_tokens=5,
+                total_tokens=len(full_prompt.split()) + 5,
+            ),
         )
 
     async def stream(
