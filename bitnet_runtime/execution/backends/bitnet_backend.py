@@ -27,6 +27,7 @@ class BitNetBackend(ExecutionBackend):
         timeout: float = 60.0,
     ):
         self.endpoint_url = endpoint_url.rstrip("/")
+        self.base_url = self.endpoint_url.removesuffix("/v1").rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
         self._loaded_models: Dict[str, LoadedModelInstance] = {}
@@ -44,7 +45,9 @@ class BitNetBackend(ExecutionBackend):
     async def check_health(self) -> BackendHealth:
         try:
             async with httpx.AsyncClient(timeout=3.0, headers=self._get_headers()) as client:
-                res = await client.get(f"{self.endpoint_url}/health")
+                res = await client.get(f"{self.base_url}/health")
+                if res.status_code != 200:
+                    res = await client.get(f"{self.endpoint_url}/health")
                 if res.status_code == 200:
                     return BackendHealth(
                         backend_type=self.backend_type,
@@ -104,9 +107,11 @@ class BitNetBackend(ExecutionBackend):
 
         async with httpx.AsyncClient(timeout=self.timeout, headers=self._get_headers()) as client:
             # Try chat completions or completion endpoint
-            res = await client.post(f"{self.endpoint_url}/chat/completions", json=payload)
+            res = await client.post(f"{self.base_url}/v1/chat/completions", json=payload)
             if res.status_code != 200:
-                res = await client.post(f"{self.endpoint_url}/v1/chat/completions", json=payload)
+                res = await client.post(f"{self.base_url}/chat/completions", json=payload)
+            if res.status_code != 200:
+                res = await client.post(f"{self.endpoint_url}/chat/completions", json=payload)
             if res.status_code != 200:
                 raise RuntimeError(f"bitnet-server error ({res.status_code}): {res.text}")
             data = res.json()

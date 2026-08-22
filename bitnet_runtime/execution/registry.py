@@ -13,7 +13,7 @@ from .base import (
 from .backends import BitNetBackend, LlamaCppBackend, MockExecutionBackend, TEIBackend
 from ..config import config
 from ..inference.base import CompletionResponse, EmbeddingResponse
-from ..model_garden.models import ModelManifest, ModelModality
+from ..model_garden.models import ModelFamily, ModelManifest, ModelModality
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +60,14 @@ class ExecutionRegistry:
         3. TEI backend        <- Specialized fallback/optimization for embeddings/reranking
         4. Mock backend       <- Offline test suites
         """
-        # 1. Native BitNet sidecar (only for BitNet model family)
-        if manifest.family == "bitnet":
+        # 1. Native BitNet sidecar (for BitNet model family or bitnet provider)
+        if manifest.family in (ModelFamily.BITNET, "bitnet") or manifest.provider_backend == "bitnet":
             bitnet = self._backends[BackendType.BITNET_SIDECAR]
             h_b = await bitnet.check_health()
             if h_b.status == BackendStatus.ONLINE:
                 return bitnet
+            if not self.use_mock:
+                raise RuntimeError(f"BitNet backend ({bitnet.endpoint_url}) is offline.")
 
         # 2. llama.cpp (Primary for all generative SLMs, GGUF embeddings, and reranking)
         llama = self._backends[BackendType.LLAMACPP]
@@ -80,8 +82,20 @@ class ExecutionRegistry:
             if h_tei.status == BackendStatus.ONLINE:
                 return tei
 
-        # 4. Mock backend (for offline CI test suites)
-        return self._backends[BackendType.MOCK]
+        # 4. Fallback to BitNet sidecar if it is online and model is generative text
+        bitnet = self._backends[BackendType.BITNET_SIDECAR]
+        h_b = await bitnet.check_health()
+        if h_b.status == BackendStatus.ONLINE and manifest.modality in (ModelModality.GENERATIVE_TEXT, "generative_text"):
+            return bitnet
+
+        # 5. Mock backend (for offline CI test suites)
+        if self.use_mock:
+            return self._backends[BackendType.MOCK]
+
+        raise RuntimeError(
+            f"No active execution backend online for model '{manifest.model_id}'. "
+            "Please ensure llama-server or BitNet container is running."
+        )
 
     async def load_model(self, manifest: ModelManifest, model_path: Optional[str] = None) -> LoadedModelInstance:
         backend = await self.resolve_backend_for_model(manifest)

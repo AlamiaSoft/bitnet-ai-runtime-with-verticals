@@ -26,7 +26,10 @@ class InferenceSettings(BaseModel):
         default_factory=lambda: os.getenv("BITNET_DEFAULT_PROVIDER", os.getenv("DEFAULT_PROVIDER", "bitnet"))
     )  # "bitnet", "llamacpp", "local_endpoint", "mock"
     bitnet_server_url: str = Field(
-        default_factory=lambda: os.getenv("BITNET_SERVER_URL", "http://127.0.0.1:8080/v1")
+        default_factory=lambda: os.getenv(
+            "BITNET_SERVER_URL",
+            os.getenv("BITNET_LOCAL_ENDPOINT_URL", "http://127.0.0.1:8080/v1")
+        )
     )
     api_key: Optional[str] = Field(
         default_factory=lambda: os.getenv("BITNET_API_KEY", None)
