@@ -28,6 +28,9 @@ class InferenceSettings(BaseModel):
     bitnet_server_url: str = Field(
         default_factory=lambda: os.getenv("BITNET_SERVER_URL", "http://127.0.0.1:8080/v1")
     )
+    api_key: Optional[str] = Field(
+        default_factory=lambda: os.getenv("BITNET_API_KEY", None)
+    )
     model_name: str = Field(
         default_factory=lambda: os.getenv("BITNET_MODEL_NAME", "/models/BitNet-b1.58-2B-4T/ggml-model-i2_s.gguf")
     )

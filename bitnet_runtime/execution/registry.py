@@ -11,6 +11,7 @@ from .base import (
     RerankResponse,
 )
 from .backends import BitNetBackend, LlamaCppBackend, MockExecutionBackend, TEIBackend
+from ..config import config
 from ..inference.base import CompletionResponse, EmbeddingResponse
 from ..model_garden.models import ModelManifest, ModelModality
 
@@ -31,7 +32,10 @@ class ExecutionRegistry:
         self._backends: Dict[BackendType, ExecutionBackend] = {
             BackendType.LLAMACPP: LlamaCppBackend(),
             BackendType.TEI: TEIBackend(),
-            BackendType.BITNET_SIDECAR: BitNetBackend(),
+            BackendType.BITNET_SIDECAR: BitNetBackend(
+                endpoint_url=config.inference.bitnet_server_url,
+                api_key=config.inference.api_key,
+            ),
             BackendType.MOCK: MockExecutionBackend(),
         }
         self._loaded_instances: Dict[str, LoadedModelInstance] = {}

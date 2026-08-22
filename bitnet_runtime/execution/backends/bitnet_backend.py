@@ -20,10 +20,22 @@ class BitNetBackend(ExecutionBackend):
     Driver for Microsoft BitNet sidecar container (ghcr.io/microsoft/bitnet-server).
     """
 
-    def __init__(self, endpoint_url: str = "http://localhost:8080", timeout: float = 60.0):
+    def __init__(
+        self,
+        endpoint_url: str = "http://localhost:8080",
+        api_key: Optional[str] = None,
+        timeout: float = 60.0,
+    ):
         self.endpoint_url = endpoint_url.rstrip("/")
+        self.api_key = api_key
         self.timeout = timeout
         self._loaded_models: Dict[str, LoadedModelInstance] = {}
+
+    def _get_headers(self) -> Dict[str, str]:
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
 
     @property
     def backend_type(self) -> BackendType:
@@ -31,7 +43,7 @@ class BitNetBackend(ExecutionBackend):
 
     async def check_health(self) -> BackendHealth:
         try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
+            async with httpx.AsyncClient(timeout=3.0, headers=self._get_headers()) as client:
                 res = await client.get(f"{self.endpoint_url}/health")
                 if res.status_code == 200:
                     return BackendHealth(
@@ -90,7 +102,7 @@ class BitNetBackend(ExecutionBackend):
             "stop": stop_sequences or [],
         }
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, headers=self._get_headers()) as client:
             # Try chat completions or completion endpoint
             res = await client.post(f"{self.endpoint_url}/chat/completions", json=payload)
             if res.status_code != 200:

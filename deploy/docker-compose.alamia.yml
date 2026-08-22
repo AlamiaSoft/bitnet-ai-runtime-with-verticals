@@ -1,0 +1,32 @@
+services:
+  alamia-local-ai:
+    image: alamiasoft/alamia-local-ai:latest
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: alamia-local-ai
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000" # Localhost only; route via Cloudflare Tunnel
+    deploy:
+      resources:
+        limits:
+          cpus: '6.0'
+          memory: 20G
+    volumes:
+      - alamia_data:/app/data
+      - alamia_models:/app/models
+    environment:
+      - BITNET_HOST=0.0.0.0
+      - BITNET_PORT=8000
+      # Connect to BitNet sidecar (local or remote via public endpoint with auth token)
+      - BITNET_SERVER_URL=${BITNET_SERVER_URL:-https://ai.alamiaconnect.com/v1}
+      - BITNET_API_KEY=${BITNET_API_KEY}
+      - ALAMIA_RUNTIME_NAME=Alamia Local AI Runtime
+      - ENVIRONMENT=production
+
+volumes:
+  alamia_data:
+    name: alamia_local_ai_data
+  alamia_models:
+    name: alamia_local_ai_models

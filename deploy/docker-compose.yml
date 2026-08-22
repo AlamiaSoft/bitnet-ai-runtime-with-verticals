@@ -1,0 +1,28 @@
+services:
+  bitnet:
+    image: mcr.microsoft.com/appsvc/docs/sidecars/sample-experiment:bitnet-b1.58-2b-4t-gguf
+    container_name: bitnet-server
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434" # Binds locally so Cloudflare Tunnel can route to it, but keeps it off the public internet
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '3.0'
+          memory: 3G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:11434/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    environment:
+      - SLM_PORT=11434
+      - WEBSITE_SLM_STARTUP_ARGUMENTS=-t ${BITNET_THREADS:-4} --repeat-penalty ${BITNET_REPEAT_PENALTY:-1.15} --repeat-last-n 64 --top-p ${BITNET_TOP_P:-0.9} --min-p ${BITNET_MIN_P:-0.05} --temp ${BITNET_TEMP:-0.7} --api-key ${BITNET_API_KEY:-your_secure_random_string_here} -c ${BITNET_CTX_SIZE:-4096} --parallel ${BITNET_PARALLEL:-2}
