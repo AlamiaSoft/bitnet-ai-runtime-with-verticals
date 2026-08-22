@@ -443,36 +443,58 @@
         </div>
       </div>
 
-      <!-- Recent Traces Table -->
+      <!-- Detailed Execution Traces Dialogue & Logs -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-800">
-          <h3 class="text-sm font-semibold text-white">Recent Execution Traces</h3>
+        <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+          <h3 class="text-sm font-semibold text-white">Recent Execution & Message Logs</h3>
+          <span class="text-xs text-slate-500 font-mono" x-text="'Showing ' + telemetry.recent_traces.length + ' logged interactions'"></span>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300">
-            <thead class="bg-slate-950/60 text-slate-500 uppercase text-[10px] font-bold">
-              <tr>
-                <th class="px-6 py-3">Trace ID</th>
-                <th class="px-6 py-3">Task Type</th>
-                <th class="px-6 py-3">Selected Model</th>
-                <th class="px-6 py-3">Fallback?</th>
-                <th class="px-6 py-3">Latency</th>
-                <th class="px-6 py-3">Cost</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-800">
-              <template x-for="t in telemetry.recent_traces" :key="t.trace_id">
-                <tr class="hover:bg-slate-800/40">
-                  <td class="px-6 py-3 font-mono text-slate-400" x-text="t.trace_id"></td>
-                  <td class="px-6 py-3 capitalize" x-text="t.task_requirements.task_type"></td>
-                  <td class="px-6 py-3 text-white font-medium" x-text="t.executed_model_id"></td>
-                  <td class="px-6 py-3" x-text="t.fallback_invoked ? '⚠️ Yes' : 'No'"></td>
-                  <td class="px-6 py-3 font-mono" x-text="t.latency_ms + 'ms'"></td>
-                  <td class="px-6 py-3 font-mono" x-text="'$' + t.estimated_cost_usd"></td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
+
+        <div class="divide-y divide-slate-800/80">
+          <template x-for="(t, idx) in telemetry.recent_traces" :key="t.trace_id || idx">
+            <div class="p-5 hover:bg-slate-850/50 transition">
+              <!-- Summary Line -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div class="flex items-center gap-3">
+                  <span class="font-mono text-xs text-emerald-400 font-bold" x-text="t.executed_model_id"></span>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono uppercase" x-text="t.task_requirements ? t.task_requirements.task_type : 'task'"></span>
+                  <span class="text-[11px] text-slate-500 font-mono" x-text="t.timestamp_str || ''"></span>
+                </div>
+                <div class="flex items-center gap-4 text-xs font-mono">
+                  <span class="text-slate-300" x-text="t.latency_ms + ' ms'"></span>
+                  <span class="text-slate-400" x-text="(t.token_usage ? t.token_usage.total_tokens : 0) + ' toks'"></span>
+                  <span class="text-emerald-400" x-text="'$' + (t.estimated_cost_usd || 0)"></span>
+                  <span class="text-slate-500 text-[11px]" x-text="t.trace_id"></span>
+                </div>
+              </div>
+
+              <!-- Prompt & Response Dialogue Boxes -->
+              <div class="mt-3.5 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <!-- User Prompt Box -->
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800/80 space-y-1">
+                  <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex justify-between">
+                    <span>Input Message</span>
+                  </div>
+                  <p class="text-slate-300 font-mono whitespace-pre-wrap leading-relaxed" x-text="t.prompt || '(No input recorded)'"></p>
+                </div>
+
+                <!-- Generated Response Box -->
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-emerald-500/20 space-y-1">
+                  <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex justify-between">
+                    <span>Model Response Output</span>
+                  </div>
+                  <p class="text-slate-200 font-mono whitespace-pre-wrap leading-relaxed" x-text="t.response_text || (t.decision ? t.decision.rationale : '(Completed)')"></p>
+                </div>
+              </div>
+
+            </div>
+          </template>
+
+          <template x-if="telemetry.recent_traces.length === 0">
+            <div class="py-12 text-center text-xs text-slate-500">
+              No execution traces recorded yet. Send a message in Model Playground or run a task in Router Studio to see live logs!
+            </div>
+          </template>
         </div>
       </div>
     </section>

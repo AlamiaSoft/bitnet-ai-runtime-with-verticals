@@ -47,7 +47,7 @@ async def complete_with_router(payload: Dict[str, Any]) -> Dict[str, Any]:
     task_type = TaskType(task_type_str) if task_type_str else None
 
     resp, trace = await ai_router.complete(prompt=prompt, task_type=task_type)
-    telemetry_collector.record_trace(trace)
+    telemetry_collector.record_trace(trace, prompt=prompt, response_text=resp.text)
 
     return {
         "text": resp.text,

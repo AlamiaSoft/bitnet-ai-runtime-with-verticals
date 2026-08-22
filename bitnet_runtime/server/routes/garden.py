@@ -166,6 +166,8 @@ async def chat_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, A
         cost = 0.0 if manifest.cost_per_1k_input == 0.0 else round(0.002, 5)
         telemetry_collector.record_direct_chat(
             model_id=model_id,
+            prompt=prompt,
+            response_text=resp.text,
             latency_ms=latency,
             tokens_used=tokens,
             cost_usd=cost,
@@ -184,8 +186,11 @@ async def chat_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, A
     except Exception as e:
         latency = round((time.time() - start_time) * 1000.0, 1)
         tokens = len(prompt.split()) + 25
+        fallback_msg = f"[{manifest.name} Response]: Processed prompt: '{prompt}'. (Inference completed locally on CPU)."
         telemetry_collector.record_direct_chat(
             model_id=model_id,
+            prompt=prompt,
+            response_text=fallback_msg,
             latency_ms=latency,
             tokens_used=tokens,
             cost_usd=0.0,
@@ -194,7 +199,7 @@ async def chat_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, A
         return {
             "model_id": model_id,
             "model_name": manifest.name,
-            "text": f"[{manifest.name} Response]: Processed prompt: '{prompt}'. (Inference completed locally on CPU).",
+            "text": fallback_msg,
             "latency_ms": latency,
             "tokens_used": tokens,
             "cost_usd": 0.0,
