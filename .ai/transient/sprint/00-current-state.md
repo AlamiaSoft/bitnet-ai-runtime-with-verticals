@@ -45,7 +45,17 @@ Build the unified local AI agent runtime powered by small, capable AI models on 
   - [x] Rebranded platform to **Alamia Local AI Runtime** (product family: **Alamia AI**)
   - [x] Formulated 5 core pillars: Alamia Model Garden, Alamia AI Router, Alamia Inference Fabric, Alamia AI Employees, Alamia AI Verticals
   - [x] Updated README.md, dashboard.html, app.py, config.py, and test suite
+- [x] **System UI Upgrade: Interactive Alamia Local AI Console**:
+  - [x] Adopted dark slate-moss console design from `docs/qa/System-ui/alamia-console.html`
+  - [x] Connected all 8 views (Overview, Model Garden, Model Details, AI Router, AI Playground, AI Employees, Workflows, Activity & System)
+  - [x] Integrated live SSE progress streaming for installation, RAM loading/unloading, live playground chat, vector embedding calculator, and real-time telemetry feed
+- [x] **Hetzner CX43 AMD VPS Deployment & Live BitNet Connectivity**:
+  - [x] Decoupled into two independent Portainer stacks: Microsoft BitNet Sidecar (`deploy/docker-compose.yml`) and Alamia Local AI Runtime (`deploy/docker-compose.alamia.yml`)
+  - [x] Configured direct GitHub repository pulling and image building in Portainer
+  - [x] Added Bearer token authentication (`BITNET_API_KEY`) to `BitNetBackend` and normalized base URL handling
+  - [x] Verified live real-time completions against `https://ai.alamiaconnect.com/v1`
   - [x] **Test suite**: **61/61 tests passing** (100% pass rate)
 
 ## Next Sprint Milestone
 - **Alamia AI Employee Vertical Review & Flagship Upgrade** (`docs/qa/ai-employee-vertical/review01.md`)
+
