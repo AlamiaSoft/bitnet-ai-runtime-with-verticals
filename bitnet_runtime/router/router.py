@@ -47,7 +47,7 @@ class AIRouter:
 
         if task_type:
             inferred_type = task_type
-        elif any(k in prompt_lower for k in ["classify", "priority", "sentiment", "label", "category"]):
+        elif any(k in prompt_lower for k in ["classify", "priority", "sentiment", "label", "category", "hi", "hello", "hey", "greet"]):
             inferred_type = TaskType.CLASSIFICATION
         elif any(k in prompt_lower for k in ["extract", "json", "entities", "phone", "email", "fields"]):
             inferred_type = TaskType.EXTRACTION

@@ -10,6 +10,8 @@ services:
       - ./data:/app/data
       - ./models:/app/models
       - ./workspace:/app/workspace
+    env_file:
+      - .env
     environment:
       - BITNET_HOST=0.0.0.0
       - BITNET_PORT=8000
