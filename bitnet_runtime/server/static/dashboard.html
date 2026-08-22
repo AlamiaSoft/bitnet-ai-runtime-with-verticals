@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitNet AI Runtime ? Model Garden & AI Router Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f0fdf4', 500: '#22c55e', 600: '#16a34a', 700: '#15803d' },
+            slate: { 850: '#111827', 900: '#0f172a', 950: '#020617' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased" x-data="gardenApp()" x-init="init()">
+
+  <!-- Top Navigation Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold text-emerald-400">
+          1b
+        </div>
+        <div>
+          <h1 class="text-base font-semibold text-white tracking-tight">BitNet AI Runtime</h1>
+          <p class="text-xs text-slate-400">Model Garden & Intelligent Router</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-medium">
+        <button @click="tab = 'garden'" :class="tab === 'garden' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">?? Model Garden</button>
+        <button @click="tab = 'hardware'" :class="tab === 'hardware' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">?? Hardware & Storage</button>
+        <button @click="tab = 'router'" :class="tab === 'router' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">?? Router Studio</button>
+        <button @click="tab = 'telemetry'" :class="tab === 'telemetry' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg transition">?? Telemetry</button>
+      </nav>
+
+      <!-- Status Indicator -->
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-1.5"></span> Local Host Online
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- TAB 1: MODEL GARDEN CATALOG -->
+    <section x-show="tab === 'garden'" x-cloak class="space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
+        <div>
+          <h2 class="text-xl font-bold text-white">Curated Model Garden</h2>
+          <p class="text-xs text-slate-400 mt-0.5">CPU-friendly 1?4B SLMs, dedicated embeddings, and specialized rerankers.</p>
+        </div>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <input type="text" x-model="search" placeholder="Search models, families, or tasks..." class="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 w-full sm:w-64">
+          <select x-model="selectedModality" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+            <option value="">All Modalities</option>
+            <option value="generative_text">Generative SLMs</option>
+            <option value="embedding">Embedding Models</option>
+            <option value="reranker">Rerankers</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Models Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <template x-for="m in filteredModels" :key="m.model_id">
+          <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700 transition relative overflow-hidden group">
+            
+            <div>
+              <!-- Top tags -->
+              <div class="flex justify-between items-start mb-3">
+                <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300" x-text="m.family"></span>
+                <div class="flex items-center gap-1.5">
+                  <!-- Compatibility Badge -->
+                  <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="{
+                    'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20': m.compatibility.status === 'compatible',
+                    'bg-amber-500/10 text-amber-400 border border-amber-500/20': m.compatibility.status === 'ram_constrained',
+                    'bg-rose-500/10 text-rose-400 border border-rose-500/20': m.compatibility.status === 'incompatible_arch'
+                  }" x-text="m.compatibility.status === 'compatible' ? '? Compatible' : m.compatibility.status"></span>
+
+                  <!-- Status Badge -->
+                  <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="{
+                    'bg-blue-500/10 text-blue-400 border border-blue-500/20': m.status === 'installed',
+                    'bg-slate-800 text-slate-400': m.status === 'available',
+                    'bg-yellow-500/10 text-yellow-400': m.status === 'downloading'
+                  }" x-text="m.status"></span>
+                </div>
+              </div>
+
+              <h3 class="text-base font-bold text-white tracking-tight" x-text="m.name"></h3>
+              <p class="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed" x-text="m.description"></p>
+
+              <!-- Specs Table -->
+              <div class="mt-4 grid grid-cols-3 gap-2 text-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60">
+                <div>
+                  <div class="text-[10px] text-slate-500 uppercase font-bold">Params</div>
+                  <div class="text-xs font-semibold text-slate-200 mt-0.5" x-text="m.parameter_size"></div>
+                </div>
+                <div>
+                  <div class="text-[10px] text-slate-500 uppercase font-bold">RAM</div>
+                  <div class="text-xs font-semibold text-slate-200 mt-0.5" x-text="m.hardware.min_ram_mb + ' MB'"></div>
+                </div>
+                <div>
+                  <div class="text-[10px] text-slate-500 uppercase font-bold">Context</div>
+                  <div class="text-xs font-semibold text-slate-200 mt-0.5" x-text="m.context_window >= 1000 ? (m.context_window/1000) + 'k' : m.context_window"></div>
+                </div>
+              </div>
+
+              <!-- Task Ratings Bars -->
+              <div class="mt-4 space-y-1.5">
+                <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Benchmarked Capabilities</div>
+                <template x-for="(rating, task) in m.task_ratings" :key="task">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-400 capitalize" x-text="task.replace('_', ' ')"></span>
+                    <div class="flex items-center gap-2">
+                      <div class="w-20 bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-emerald-500 h-full rounded-full" :style="'width: ' + (rating / 5.0 * 100) + '%'"></div>
+                      </div>
+                      <span class="text-slate-300 font-mono text-[11px]" x-text="rating.toFixed(1)"></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Action Buttons / Progress -->
+            <div class="mt-5 pt-3 border-t border-slate-800/60 flex items-center justify-between">
+              <span class="text-xs font-mono text-slate-400" x-text="'$' + m.cost_per_1k_input + ' / 1k toks'"></span>
+
+              <div>
+                <template x-if="m.status === 'available'">
+                  <button @click="installModel(m.model_id)" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-xl transition shadow">
+                    Install Model
+                  </button>
+                </template>
+
+                <template x-if="m.status === 'downloading'">
+                  <button disabled class="px-3.5 py-1.5 bg-yellow-600/50 text-yellow-200 text-xs font-medium rounded-xl cursor-not-allowed animate-pulse">
+                    Downloading...
+                  </button>
+                </template>
+
+                <template x-if="m.status === 'installed' && m.provider_backend !== 'mock'">
+                  <button @click="uninstallModel(m.model_id)" class="px-3 py-1.5 bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 text-slate-300 text-xs font-medium rounded-xl transition border border-slate-700">
+                    Uninstall
+                  </button>
+                </template>
+              </div>
+            </div>
+
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <!-- TAB 2: HARDWARE & STORAGE -->
+    <section x-show="tab === 'hardware'" x-cloak class="space-y-6">
+      <h2 class="text-xl font-bold text-white">Hardware Discovery & Disk Storage</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Host Diagnostics Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h3 class="text-base font-semibold text-white">Host Architecture & RAM</h3>
+          <div class="space-y-2.5 text-xs">
+            <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300">
+              <span class="text-slate-500">Platform:</span> <span class="font-medium" x-text="hardware.platform"></span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300">
+              <span class="text-slate-500">CPU Architecture:</span> <span class="font-medium" x-text="hardware.architecture"></span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300">
+              <span class="text-slate-500">CPU Model:</span> <span class="font-medium" x-text="hardware.cpu_model"></span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300">
+              <span class="text-slate-500">Cores (Logical / Physical):</span> <span class="font-medium" x-text="hardware.logical_cores + ' / ' + hardware.physical_cores"></span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-800 text-slate-300">
+              <span class="text-slate-500">Total System RAM:</span> <span class="font-medium" x-text="hardware.total_ram_mb + ' MB'"></span>
+            </div>
+            <div class="flex justify-between py-1 text-slate-300">
+              <span class="text-slate-500">Available Free RAM:</span> <span class="font-medium text-emerald-400" x-text="hardware.available_ram_mb + ' MB'"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Storage Quota Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h3 class="text-base font-semibold text-white">Local Models Storage</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between text-xs text-slate-400">
+              <span>Models Directory:</span>
+              <span class="font-mono text-slate-200" x-text="storage.models_dir"></span>
+            </div>
+            <div class="flex justify-between text-xs text-slate-400">
+              <span>Installed Models:</span>
+              <span class="font-medium text-slate-200" x-text="storage.installed_models_count + ' of ' + storage.total_models_count + ' available'"></span>
+            </div>
+
+            <div class="space-y-1.5 pt-2">
+              <div class="flex justify-between text-xs font-medium">
+                <span class="text-slate-400">Disk Used by Models</span>
+                <span class="text-emerald-400 font-mono" x-text="storage.total_disk_used_mb + ' MB'"></span>
+              </div>
+              <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div class="bg-emerald-500 h-full rounded-full" :style="'width: ' + Math.min((storage.total_disk_used_mb / Math.max(storage.free_disk_space_mb, 1) * 100), 100) + '%'"></div>
+              </div>
+              <div class="text-right text-[11px] text-slate-500" x-text="'Free Disk: ' + (storage.free_disk_space_mb/1024).toFixed(1) + ' GB'"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: ROUTER STUDIO -->
+    <section x-show="tab === 'router'" x-cloak class="space-y-6">
+      <h2 class="text-xl font-bold text-white">AI Router Interactive Studio</h2>
+      <p class="text-xs text-slate-400">Test capability-driven model routing in real time.</p>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Input Form -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 lg:col-span-1">
+          <h3 class="text-sm font-semibold text-white">Route Prompt</h3>
+          
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Task Type</label>
+              <select x-model="routerTaskType" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200">
+                <option value="">Auto-infer from prompt</option>
+                <option value="classification">Classification</option>
+                <option value="extraction">Extraction</option>
+                <option value="summarization">Summarization</option>
+                <option value="rag_qa">RAG QA</option>
+                <option value="reasoning">Reasoning</option>
+                <option value="coding">Coding</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">Prompt</label>
+              <textarea x-model="routerPrompt" rows="5" placeholder="Enter prompt to route..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500"></textarea>
+            </div>
+
+            <button @click="executeRoute()" :disabled="routerLoading" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold rounded-xl text-xs transition">
+              <span x-text="routerLoading ? 'Routing & Executing...' : 'Execute Task'"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Output Decision Trace Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:col-span-2 space-y-4">
+          <h3 class="text-sm font-semibold text-white">Execution Result & Decision Trace</h3>
+
+          <template x-if="routerResult">
+            <div class="space-y-4 text-xs">
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 space-y-2">
+                <div class="flex justify-between items-center text-[11px]">
+                  <span class="text-emerald-400 font-bold uppercase" x-text="'Selected: ' + routerResult.executed_model_id"></span>
+                  <span class="text-slate-400 font-mono" x-text="routerResult.latency_ms + ' ms | $' + routerResult.estimated_cost_usd"></span>
+                </div>
+                <p class="text-slate-300 font-mono whitespace-pre-wrap leading-relaxed" x-text="routerResult.text"></p>
+              </div>
+
+              <div>
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Candidate Evaluation Scores</h4>
+                <div class="space-y-1.5">
+                  <template x-for="(score, mod) in routerResult.trace.decision.candidate_scores" :key="mod">
+                    <div class="flex justify-between items-center text-xs py-1 border-b border-slate-800/40">
+                      <span class="text-slate-300" x-text="mod"></span>
+                      <span class="font-mono text-emerald-400" x-text="score"></span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <template x-if="!routerResult">
+            <div class="text-center py-12 text-slate-500 text-xs">
+              Select a task type, write a prompt, and click "Execute Task" to inspect model selection decisions.
+            </div>
+          </template>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: TELEMETRY -->
+    <section x-show="tab === 'telemetry'" x-cloak class="space-y-6">
+      <h2 class="text-xl font-bold text-white">Live Router Telemetry & Observability</h2>
+
+      <!-- Metrics Top Row -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+          <div class="text-xs text-slate-500 font-medium uppercase">Total Tasks Routed</div>
+          <div class="text-2xl font-bold text-white mt-1" x-text="telemetry.total_routed_tasks"></div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+          <div class="text-xs text-slate-500 font-medium uppercase">Average Latency</div>
+          <div class="text-2xl font-bold text-emerald-400 mt-1" x-text="telemetry.average_latency_ms + ' ms'"></div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+          <div class="text-xs text-slate-500 font-medium uppercase">Total Cloud Cost</div>
+          <div class="text-2xl font-bold text-blue-400 mt-1" x-text="'$' + telemetry.total_estimated_cost_usd"></div>
+        </div>
+      </div>
+
+      <!-- Recent Traces Table -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-800">
+          <h3 class="text-sm font-semibold text-white">Recent Execution Traces</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950/60 text-slate-500 uppercase text-[10px] font-bold">
+              <tr>
+                <th class="px-6 py-3">Trace ID</th>
+                <th class="px-6 py-3">Task Type</th>
+                <th class="px-6 py-3">Selected Model</th>
+                <th class="px-6 py-3">Fallback?</th>
+                <th class="px-6 py-3">Latency</th>
+                <th class="px-6 py-3">Cost</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              <template x-for="t in telemetry.recent_traces" :key="t.trace_id">
+                <tr class="hover:bg-slate-800/40">
+                  <td class="px-6 py-3 font-mono text-slate-400" x-text="t.trace_id"></td>
+                  <td class="px-6 py-3 capitalize" x-text="t.task_requirements.task_type"></td>
+                  <td class="px-6 py-3 text-white font-medium" x-text="t.executed_model_id"></td>
+                  <td class="px-6 py-3" x-text="t.fallback_invoked ? '?? Yes' : 'No'"></td>
+                  <td class="px-6 py-3 font-mono" x-text="t.latency_ms + 'ms'"></td>
+                  <td class="px-6 py-3 font-mono" x-text="'$' + t.estimated_cost_usd"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function gardenApp() {
+      return {
+        tab: 'garden',
+        models: [],
+        hardware: {},
+        storage: {},
+        telemetry: { total_routed_tasks: 0, average_latency_ms: 0, total_estimated_cost_usd: 0, recent_traces: [] },
+        search: '',
+        selectedModality: '',
+        routerTaskType: 'classification',
+        routerPrompt: 'Classify this inquiry: Urgent need for 50 commercial licenses',
+        routerResult: null,
+        routerLoading: false,
+
+        async init() {
+          await this.loadAll();
+          setInterval(() => this.loadTelemetry(), 5000);
+        },
+
+        async loadAll() {
+          await Promise.all([this.loadModels(), this.loadHardware(), this.loadStorage(), this.loadTelemetry()]);
+        },
+
+        async loadModels() {
+          try {
+            const res = await fetch('/api/v1/garden/models');
+            this.models = await res.json();
+          } catch(e) { console.error(e); }
+        },
+
+        async loadHardware() {
+          try {
+            const res = await fetch('/api/v1/garden/hardware');
+            this.hardware = await res.json();
+          } catch(e) { console.error(e); }
+        },
+
+        async loadStorage() {
+          try {
+            const res = await fetch('/api/v1/garden/storage');
+            this.storage = await res.json();
+          } catch(e) { console.error(e); }
+        },
+
+        async loadTelemetry() {
+          try {
+            const res = await fetch('/api/v1/router/telemetry');
+            this.telemetry = await res.json();
+          } catch(e) { console.error(e); }
+        },
+
+        get filteredModels() {
+          return this.models.filter(m => {
+            const matchSearch = !this.search || m.name.toLowerCase().includes(this.search.toLowerCase()) || m.family.toLowerCase().includes(this.search.toLowerCase());
+            const matchMod = !this.selectedModality || m.modality === this.selectedModality;
+            return matchSearch && matchMod;
+          });
+        },
+
+        async installModel(id) {
+          try {
+            await fetch(`/api/v1/garden/models/${id}/install`, { method: 'POST' });
+            await this.loadModels();
+            // Start SSE progress listener
+            const es = new EventSource(`/api/v1/garden/models/${id}/events`);
+            es.onmessage = (e) => {
+              const data = JSON.parse(e.data);
+              if (data.status === 'installed' || data.status === 'error') {
+                es.close();
+                this.loadAll();
+              }
+            };
+          } catch(e) { console.error(e); }
+        },
+
+        async uninstallModel(id) {
+          try {
+            await fetch(`/api/v1/garden/models/${id}`, { method: 'DELETE' });
+            await this.loadAll();
+          } catch(e) { console.error(e); }
+        },
+
+        async executeRoute() {
+          this.routerLoading = true;
+          try {
+            const res = await fetch('/api/v1/router/complete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt: this.routerPrompt, task_type: this.routerTaskType || null })
+            });
+            this.routerResult = await res.json();
+            await this.loadTelemetry();
+          } catch(e) {
+            console.error(e);
+          } finally {
+            this.routerLoading = false;
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>

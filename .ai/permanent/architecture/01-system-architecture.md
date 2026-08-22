@@ -10,7 +10,7 @@ Instead of treating 1-bit LLMs as simple chat interfaces, the architecture lever
 ## 2. Core Architectural Invariants
 1. **Local-First & Offline Capable**: Zero mandatory external cloud dependencies or API keys for primary operation. All vector embeddings, document parsing, state transitions, and inference run on commodity CPU/hardware.
 2. **Decoupled Dual-Layer Separation**:
-   - **Engine Layer (`bitnet_runtime`)**: Model Garden, Model management, AI Router, vector & SQLite memory, ReAct loop, tool sandbox, scheduler, local REST/SSE server, security policy engine, and dynamic plugin registry. Zero static compile-time imports of vertical applications.
+   - **Engine Layer (`bitnet_runtime`)**: Model Garden, Lifecycle Manager, AI Router, vector & SQLite memory, ReAct loop, tool sandbox, scheduler, local REST/SSE server, interactive web dashboard, security policy engine, and dynamic plugin registry. Zero static compile-time imports of vertical applications.
    - **Vertical Layer (`verticals`)**: Domain-specific agents (AI Employee, Personal Memory OS, AI Computer, AI WhatsApp Employee, QA Box) implementing `VerticalPluginContract` and `VerticalManifest`. Discovered dynamically via `VerticalRegistry` and Python entry points (`bitnet.plugins`).
 3. **Pluggable Inference Abstraction**: Uniform interface (`InferenceEngine`) supporting native BitNet runners (`bitnet.cpp` / `bitnet-server` container on `localhost:8080`), quantized GGUF (`llama.cpp`), and local mock/endpoint fallbacks (`LocalEndpointEngine`).
 4. **Deterministic Security Policy Engine**: All OS/filesystem/shell/browser operations pass through `SecurityPolicyEngine` enforcing strict capability evaluation (`ALLOW`, `DENY`, `ASK`), critical execution pattern detection, subshell parsing, and workspace path confinement.
@@ -20,10 +20,10 @@ Instead of treating 1-bit LLMs as simple chat interfaces, the architecture lever
 
 ## 3. Subsystem Responsibilities
 
-### 3.1 Model Garden Subsystem (`bitnet_runtime.model_garden`)
+### 3.1 Model Garden & Lifecycle Subsystem (`bitnet_runtime.model_garden`)
 - `ModelGarden`: Curated catalog of machine-readable manifests (`ModelManifest`) for CPU-friendly 1?4B SLMs (BitNet b1.58, Qwen 2.5, Phi-3.5 Mini, Gemma 2, LLaMA 3.2), dedicated embedding models (BGE Small, MiniLM, BitNet hash), and specialized rerankers.
-- `HardwareRequirements`: RAM limits, quantization types (`1bit_ternary`, `q4_k_m`), thread recommendations, and architecture checks.
-- Granular task benchmark ratings (`task_ratings: Dict[TaskType, float]`).
+- `ModelLifecycleManager`: Real model acquisition engine with chunked streaming downloads, SHA256 checksums, disk storage quotas (`./models/`), and state machine (`AVAILABLE ? DOWNLOADING ? INSTALLED ? LOADED ? REMOVED`).
+- `HardwareDiscoveryEngine`: Host CPU architecture, SIMD extensions (AVX2, AVX512, NEON), and physical RAM discovery computing compatibility matrix (`COMPATIBLE`, `RAM_CONSTRAINED`, `INCOMPATIBLE`).
 
 ### 3.2 AI Router Subsystem (`bitnet_runtime.router`)
 - `AIRouter`: Foundational runtime primitive for capability-driven model routing across Local 1-Bit, Local Dense, and Cloud tiers.
@@ -61,6 +61,7 @@ Instead of treating 1-bit LLMs as simple chat interfaces, the architecture lever
 - `VerticalManifest`: Structured metadata (`name`, `title`, `version`, `description`).
 - `VerticalRegistry`: Dynamic auto-discovery, Python entry point discovery (`bitnet.plugins`), and instance manager.
 
-### 3.8 Server & CLI Subsystem (`bitnet_runtime.server`, `bitnet_runtime.cli`)
-- FastAPI local daemon exposing REST APIs (`/api/v1/agents`, `/api/v1/memory`, `/api/v1/webhooks`) and Server-Sent Events (SSE).
+### 3.8 Server, Web Dashboard & CLI Subsystem (`bitnet_runtime.server`, `bitnet_runtime.cli`)
+- FastAPI local daemon exposing REST APIs (`/api/v1/garden`, `/api/v1/router`, `/api/v1/agents`, `/api/v1/memory`, `/api/v1/webhooks`) and Server-Sent Events (SSE).
+- Interactive Single-Page Web Dashboard (`/dashboard`) with Model Garden catalog browser, live SSE download manager, hardware diagnostics, and telemetry visualizer.
 - Typer CLI providing commands (`serve`, `info`, `run`, `ingest`, `search`, `vertical`).

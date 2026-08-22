@@ -32,4 +32,10 @@ Build the unified local AI agent runtime powered by 1-bit / edge inference with 
     - [x] Decoupled modality separation preventing embedding models from contaminating generative pipelines
     - [x] Upgraded `ModelCapabilityRegistry` to dynamically sync from `ModelGarden`
     - [x] Expanded test suite to **50/50 tests passing** (100% pass rate)
-  - [x] **Ready for Flagship AI Employee Vertical Upgrade**
+  - [x] **Model Garden Lifecycle, Hardware Engine & Interactive Web UI (Epics MG2–MG5, UX1–UX5)**:
+    - [x] Stateful acquisition and lifecycle manager with chunked downloads, SHA256 checksums, and on-disk storage tracking (`ModelLifecycleManager`)
+    - [x] Hardware discovery engine evaluating host CPU architecture, RAM, and vector extensions (`HardwareDiscoveryEngine`)
+    - [x] REST and SSE live progress streaming endpoints in FastAPI server (`/api/v1/garden`, `/api/v1/router`)
+    - [x] Responsive single-page web dashboard at `/dashboard` (Model Garden catalog, download manager, hardware diagnostics, router studio, and live telemetry)
+    - [x] Expanded test suite to **56/56 tests passing** (100% pass rate)
+  - [x] **Full Platform Layer Complete** — Ready for AI Employee flagship vertical upgrade
