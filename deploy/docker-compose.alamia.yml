@@ -1,6 +1,5 @@
 services:
   alamia-local-ai:
-    image: alamiasoft/alamia-local-ai:latest
     build:
       context: ..
       dockerfile: Dockerfile
@@ -19,7 +18,7 @@ services:
     environment:
       - BITNET_HOST=0.0.0.0
       - BITNET_PORT=8000
-      # Connect to BitNet sidecar (local or remote via public endpoint with auth token)
+      # Connect to BitNet sidecar via public or local endpoint with auth token
       - BITNET_SERVER_URL=${BITNET_SERVER_URL:-https://ai.alamiaconnect.com/v1}
       - BITNET_API_KEY=${BITNET_API_KEY}
       - ALAMIA_RUNTIME_NAME=Alamia Local AI Runtime

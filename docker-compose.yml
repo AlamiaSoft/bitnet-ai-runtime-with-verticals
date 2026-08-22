@@ -1,18 +1,21 @@
 services:
-  bitnet-runtime:
+  alamia-local-ai:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: bitnet-ai-runtime
+    container_name: alamia-local-ai
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./data:/app/data
       - ./models:/app/models
       - ./workspace:/app/workspace
     environment:
-      - DEFAULT_PROVIDER=bitnet
-      - BITNET_SERVER_URL=http://host.docker.internal:8080/v1
-      - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=8000
+      - BITNET_HOST=0.0.0.0
+      - BITNET_PORT=8000
+      - BITNET_SERVER_URL=${BITNET_SERVER_URL:-https://ai.alamiaconnect.com/v1}
+      - BITNET_API_KEY=${BITNET_API_KEY}
+      - ALAMIA_RUNTIME_NAME=Alamia Local AI Runtime
+      - ENVIRONMENT=production
     restart: unless-stopped
+

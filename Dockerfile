@@ -8,16 +8,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy pyproject.toml and README.md
+# Copy pyproject.toml, README, and source code
 COPY pyproject.toml README.md ./
-
-# Install python package dependencies
-RUN pip install --no-cache-dir -e .
-
-# Copy application source code
 COPY bitnet_runtime/ ./bitnet_runtime/
 COPY verticals/ ./verticals/
 COPY .env.example ./.env
+
+# Install python package and dependencies
+RUN pip install --no-cache-dir -e .
 
 # Create data and models directories
 RUN mkdir -p /app/data /app/models /app/workspace
