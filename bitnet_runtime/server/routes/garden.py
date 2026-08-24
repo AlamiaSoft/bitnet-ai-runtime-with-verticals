@@ -172,7 +172,8 @@ async def chat_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, A
             latency_ms=latency,
             tokens_used=tokens,
             cost_usd=cost,
-            task_type="interactive_chat",
+            task_type="chat",
+            model_name=manifest.name,
         )
 
         return {
@@ -225,15 +226,25 @@ async def embed_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, 
 
     latency = round((time.time() - start_time) * 1000.0, 1)
 
-    telemetry_collector.record_direct_chat(
-        model_id=model_id,
-        prompt=f"Embed: '{text_a}'" + (f" vs '{text_b}'" if text_b else ""),
-        response_text=f"Vector dim={len(res_a.vector)}" + (f", Cosine Similarity={similarity:.4f}" if similarity is not None else ""),
-        latency_ms=latency,
-        tokens_used=len(text_a.split()) + (len(text_b.split()) if text_b else 0),
-        cost_usd=0.0,
-        task_type="vector_embedding",
-    )
+    if similarity is not None and text_b:
+        telemetry_collector.record_embedding(
+            model_id=model_id,
+            text_a=text_a,
+            text_b=text_b,
+            similarity=float(similarity),
+            latency_ms=latency,
+        )
+    else:
+        telemetry_collector.record_direct_chat(
+            model_id=model_id,
+            prompt=f"Embed: '{text_a}'",
+            response_text=f"Vector dim={len(res_a.vector)}",
+            latency_ms=latency,
+            tokens_used=len(text_a.split()),
+            cost_usd=0.0,
+            task_type="embedding",
+            model_name=manifest.name,
+        )
 
     return {
         "model_id": model_id,

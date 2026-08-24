@@ -49,14 +49,40 @@ def get_agent_dependencies():
     )
     return agent, episodic
 
+import time
+from ..telemetry import telemetry_collector
+
 @router.post("/run", response_model=AgentRunResponse)
 async def run_agent(req: AgentRunRequest):
     agent, _ = get_agent_dependencies()
+    start_time = time.time()
 
     async def on_event(event: Dict[str, Any]):
         await broadcaster.broadcast({"session_id": req.session_id, **event})
+        if event.get("type") == "tool_call":
+            telemetry_collector.record_tool_call(
+                tool_name=event.get("tool_name", "Tool"),
+                arguments=event.get("tool_args", {}),
+                result_summary=str(event.get("tool_result", ""))[:140],
+                latency_ms=event.get("latency_ms", 0.0),
+                success=event.get("status") != "error",
+                session_id=req.session_id,
+            )
 
     res: AgentRunResult = await agent.run(req.prompt, session_id=req.session_id, event_callback=on_event)
+    latency_ms = round((time.time() - start_time) * 1000.0, 1)
+
+    telemetry_collector.record_agent_run(
+        agent_name=agent.name,
+        prompt=req.prompt,
+        final_answer=res.final_answer,
+        iterations=res.total_iterations,
+        success=res.success,
+        error=res.error,
+        latency_ms=latency_ms,
+        session_id=res.session_id,
+    )
+
     return AgentRunResponse(
         session_id=res.session_id,
         success=res.success,

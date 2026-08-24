@@ -29,6 +29,8 @@ async def get_memory_breakdown() -> Dict[str, Any]:
         "instances": [asdict(inst) for inst in loaded],
     }
 
+from ..telemetry import telemetry_collector
+
 @router.post("/models/{model_id}/load")
 async def load_model_to_ram(model_id: str) -> Dict[str, Any]:
     """Explicitly loads an installed model into active engine RAM."""
@@ -38,6 +40,13 @@ async def load_model_to_ram(model_id: str) -> Dict[str, Any]:
 
     try:
         instance = await execution_registry.load_model(manifest)
+        telemetry_collector.record_model_lifecycle(
+            action="load",
+            model_id=model_id,
+            model_name=manifest.name,
+            ram_mb=instance.ram_usage_mb,
+            status="loaded",
+        )
         return {
             "status": "loaded",
             "model_id": model_id,
@@ -46,12 +55,27 @@ async def load_model_to_ram(model_id: str) -> Dict[str, Any]:
             "device": instance.device,
         }
     except Exception as e:
+        telemetry_collector.record_model_lifecycle(
+            action="load",
+            model_id=model_id,
+            model_name=manifest.name,
+            status=f"error: {e}",
+        )
         raise HTTPException(status_code=500, detail=f"Failed to load model into memory: {e}")
 
 @router.post("/models/{model_id}/unload")
 async def unload_model_from_ram(model_id: str) -> Dict[str, Any]:
     """Unloads a model from RAM to free host memory."""
+    manifest = garden.get(model_id)
+    name = manifest.name if manifest else model_id
     unloaded = await execution_registry.unload_model(model_id)
+    status_str = "unloaded" if unloaded else "not_loaded"
+    telemetry_collector.record_model_lifecycle(
+        action="unload",
+        model_id=model_id,
+        model_name=name,
+        status=status_str,
+    )
     if not unloaded:
         return {"status": "not_loaded", "model_id": model_id}
     return {"status": "unloaded", "model_id": model_id}

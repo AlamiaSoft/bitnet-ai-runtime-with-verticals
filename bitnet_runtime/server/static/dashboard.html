@@ -613,7 +613,7 @@ tr:last-child td{border-bottom:none;}
               <div style="display:flex;align-items:center;gap:10px;">
                 <span style="font-size:12.5px;font-weight:500;color:var(--text-dim);">Model:</span>
                 <select id="chatModelSelect" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font-sans);font-size:12px;padding:4px 8px;cursor:pointer;font-weight:500;">
-                  <option value="auto">🤖 Auto (AI Router)</option>
+                  <option value="auto">Auto (AI Router)</option>
                 </select>
               </div>
               <button class="details-toggle" id="stratToggle" style="margin-top:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="m9 18 6-6-6-6"/></svg> Technical view</button>
@@ -944,7 +944,10 @@ async function fetchAllData(){
     if(resS && resS.total_quota_mb) live.storage = resS;
     if(resB && resB.backends) live.fabric = resB;
     if(resMem && resMem.instances) live.memory = resMem;
-    if(resT && resT.total_executions !== undefined) live.telemetry = resT;
+    if(resT) {
+      live.telemetry = resT;
+      live.telemetry.traces = resT.recent_traces || resT.traces || [];
+    }
 
     updateHeaderBadges();
     updateOverviewStats();
@@ -1061,6 +1064,30 @@ function bindModelActions(root){
 }
 
 function routerTraceSVG(){
+  const traces = (live.telemetry && live.telemetry.traces && live.telemetry.traces.length > 0)
+    ? live.telemetry.traces.slice(0, 3)
+    : [];
+
+  const logRows = traces.length > 0
+    ? traces.map(t=>{
+        const timeStr = t.timestamp_str || (t.timestamp ? new Date(t.timestamp*1000).toLocaleTimeString() : 'LIVE');
+        const lat = t.latency_ms ? `${t.latency_ms.toFixed(1)}ms` : 'LOCAL';
+        const title = t.title || `Task: ${t.task_type || 'Execution'}`;
+        const desc = t.input_summary ? `${title} — <i>${t.input_summary}</i>` : title;
+        return `
+        <div class="trace-row">
+          <div class="trace-time">${timeStr}</div>
+          <div class="trace-desc"><b>${t.target || t.executed_model_id || 'SLM'}</b> · ${desc}</div>
+          <div class="trace-score">${lat}</div>
+        </div>`;
+      }).join('')
+    : `
+      <div class="trace-row">
+        <div class="trace-time">LIVE</div>
+        <div class="trace-desc">Inference Fabric ready · <b>BitNet 1-bit native sidecar + llama.cpp engine</b></div>
+        <div class="trace-score">100% LOCAL</div>
+      </div>`;
+
   return `
   <div class="trace-wrap">
     <svg viewBox="0 0 720 110">
@@ -1086,11 +1113,7 @@ function routerTraceSVG(){
       <text x="442" y="92" fill="var(--text-faint)" font-family="JetBrains Mono, monospace" font-size="10">Gemma 2</text>
     </svg>
     <div class="trace-log">
-      <div class="trace-row">
-        <div class="trace-time">LIVE</div>
-        <div class="trace-desc">Task evaluated on <b>Alamia Inference Fabric</b> (BitNet sidecar + llama.cpp)</div>
-        <div class="trace-score">100% AIRGAPPED</div>
-      </div>
+      ${logRows}
     </div>
   </div>`;
 }
@@ -1237,12 +1260,12 @@ function updatePlaygroundModelSelect(){
   const installed = chatModels.filter(m => m.status === 'installed' || m.status === 'loaded');
   const other = chatModels.filter(m => m.status !== 'installed' && m.status !== 'loaded');
 
-  let html = `<option value="auto" ${currentVal==='auto'?'selected':''}>🤖 Auto (AI Router)</option>`;
+  let html = `<option value="auto" ${currentVal==='auto'?'selected':''}>Auto (AI Router)</option>`;
   if(installed.length > 0){
     html += `<optgroup label="Installed & Loaded Models">
       ${installed.map(m => {
         const mid = m.model_id || m.id;
-        const tag = m.status === 'loaded' ? '🟢 Loaded' : '⚡ Ready';
+        const tag = m.status === 'loaded' ? '[Loaded]' : '[Ready]';
         return `<option value="${mid}" ${currentVal===mid?'selected':''}>${m.name} (${tag})</option>`;
       }).join('')}
     </optgroup>`;
@@ -1278,27 +1301,69 @@ function updateSystemUI(){
   document.getElementById('sysDiskBar').style.width = `${Math.max(5, diskPct)}%`;
 
   const flags = hw.simd_flags || ['avx2', 'avx512f'];
-  document.getElementById('sysFlags').innerHTML = flags.map(f=>`<span class="tag" style="color:var(--success);text-transform:uppercase;">${f} ✓</span>`).join('');
+  document.getElementById('sysFlags').innerHTML = flags.map(f=>`<span class="tag" style="color:var(--success);text-transform:uppercase;">${f}</span>`).join('');
 }
 
 function updateActivityUI(){
-  const traces = (live.telemetry && live.telemetry.traces && live.telemetry.traces.length > 0) ? live.telemetry.traces : [
-    {timestamp: Date.now()/1000 - 10, task_type:'extraction', executed_model_id:'qwen2.5_1.5b_instruct', latency_ms:32.4},
-    {timestamp: Date.now()/1000 - 60, task_type:'reasoning', executed_model_id:'bitnet_b1_58_2b', latency_ms:38.2},
-    {timestamp: Date.now()/1000 - 300, task_type:'embedding', executed_model_id:'bge_small_en_v1_5', latency_ms:12.1}
-  ];
+  const traces = (live.telemetry && live.telemetry.traces && live.telemetry.traces.length > 0)
+    ? live.telemetry.traces
+    : [];
 
-  document.getElementById('activityList').innerHTML = traces.map(t=>{
-    const timeStr = new Date((t.timestamp || Date.now()/1000)*1000).toLocaleTimeString();
-    const model = t.executed_model_id || t.model_id || 'SLM';
-    const task = t.task_type || 'Reasoning';
+  const actBox = document.getElementById('activityList');
+  if(!actBox) return;
+
+  if(traces.length === 0){
+    actBox.innerHTML = `
+      <div style="padding:28px 16px;text-align:center;color:var(--text-faint);">
+        <div style="font-weight:600;color:var(--text-dim);margin-bottom:6px;">No recorded activity yet</div>
+        <div style="font-size:12.5px;">Interact in the AI Playground, run an AI Employee, or route a task to see live traces here.</div>
+      </div>`;
+    return;
+  }
+
+  const catColors = {
+    chat: {bg:'var(--accent-wash)', color:'var(--accent)'},
+    router: {bg:'rgba(139,92,246,0.12)', color:'#8b5cf6'},
+    agent: {bg:'var(--success-wash)', color:'var(--success)'},
+    tool: {bg:'var(--warning-wash)', color:'var(--warning)'},
+    model_lifecycle: {bg:'rgba(6,182,212,0.12)', color:'#06b6d4'},
+    embedding: {bg:'rgba(20,184,166,0.12)', color:'#14b8a6'},
+    memory: {bg:'rgba(99,102,241,0.12)', color:'#6366f1'},
+  };
+
+  actBox.innerHTML = traces.map((t, idx)=>{
+    const timeStr = t.timestamp_str || (t.timestamp ? new Date(t.timestamp*1000).toLocaleTimeString() : 'Just now');
+    const cat = t.category || 'execution';
+    const styling = catColors[cat] || {bg:'var(--surface-3)', color:'var(--text-dim)'};
+    const title = t.title || `Execution on ${t.executed_model_id || 'Local SLM'}`;
+    const target = t.target || t.executed_model_id || 'SLM';
     const lat = t.latency_ms ? `${t.latency_ms.toFixed(1)}ms` : 'local';
+    const cost = (t.estimated_cost_usd && t.estimated_cost_usd > 0) ? `$${t.estimated_cost_usd.toFixed(4)}` : '$0.00 · local';
+    const input = t.prompt || t.input_summary || '';
+    const output = t.response_text || t.output_summary || '';
+    const uid = `act_row_${idx}`;
+
     return `
-    <div class="act-row">
-      <div class="act-time">${timeStr}</div>
-      <div class="tag" style="text-transform:uppercase;">${task}</div>
-      <div class="act-desc">Executed on <b>${model}</b></div>
-      <div class="act-detail">${lat}</div>
+    <div style="border-bottom:1px solid var(--border);padding:12px 0;">
+      <div class="act-row" style="cursor:pointer;border-bottom:none;padding:0;" onclick="const d = document.getElementById('${uid}'); d.style.display = d.style.display==='none'?'block':'none';">
+        <div class="act-time">${timeStr}</div>
+        <div><span class="tag" style="background:${styling.bg};color:${styling.color};text-transform:uppercase;font-weight:600;">${cat.replace('_',' ')}</span></div>
+        <div class="act-desc"><b>${title}</b> <span style="color:var(--text-faint);margin-left:6px;font-size:11.5px;">(${target})</span></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="act-detail">${lat}</span>
+          <span class="tag" style="color:var(--success);">${cost}</span>
+          <span style="color:var(--text-faint);font-size:10px;font-family:var(--font-mono);">[view]</span>
+        </div>
+      </div>
+      <div id="${uid}" style="display:none;margin-top:10px;padding:12px 14px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-size:12px;">
+        ${input ? `<div style="margin-bottom:8px;"><b>Input / Prompt:</b><div style="color:var(--text-dim);margin-top:3px;white-space:pre-wrap;font-family:var(--font-mono);font-size:11.5px;">${input}</div></div>` : ''}
+        ${output ? `<div><b>Result / Output:</b><div style="color:var(--text);margin-top:3px;white-space:pre-wrap;font-family:var(--font-mono);font-size:11.5px;">${output}</div></div>` : ''}
+        <div style="margin-top:8px;font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);display:flex;gap:14px;border-top:1px solid var(--border);padding-top:6px;">
+          <span>Trace ID: ${t.trace_id || 'n/a'}</span>
+          ${t.tokens ? `<span>Tokens: ${t.tokens}</span>` : ''}
+          <span>Status: <b style="color:${t.status==='error'?'var(--danger)':'var(--success)'};">${t.status||'success'}</b></span>
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
