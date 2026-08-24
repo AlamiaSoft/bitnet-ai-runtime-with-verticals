@@ -1828,8 +1828,7 @@ Return the extracted structured data:`;
           body: JSON.stringify({query: query, top_k: topK})
         }).then(r=>r.json()).catch(()=>({results:[]}));
 
-        const chunks = (memRes.results || []).map(r=>`- ${r.text_content} (Score: ${(r.score*100).toFixed(1)}%)`).join('
-');
+        const chunks = (memRes.results || []).map(r=>`- ${r.text_content} (Score: ${(r.score*100).toFixed(1)}%)`).join('\n');
         const contextPrompt = chunks ? `Context from local knowledge base:
 ${chunks}
 
