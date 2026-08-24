@@ -18,7 +18,7 @@ services:
       - BITNET_HOST=0.0.0.0
       - BITNET_PORT=8000
       - BITNET_SERVER_URL=${BITNET_SERVER_URL:-https://ai.alamiaconnect.com/v1}
-      - BITNET_API_KEY=${BITNET_API_KEY}
+      - BITNET_API_KEY=${BITNET_API_KEY:-51129693340}
       - ALAMIA_RUNTIME_NAME=Alamia Local AI Runtime
       - ENVIRONMENT=production
     restart: unless-stopped

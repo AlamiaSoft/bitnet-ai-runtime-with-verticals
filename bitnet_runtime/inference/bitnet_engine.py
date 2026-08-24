@@ -27,12 +27,12 @@ class BitNetEngine(InferenceEngine):
         api_key: Optional[str] = None,
         timeout: float = 60.0,
     ):
-        self.server_url = (server_url or os.getenv("BITNET_SERVER_URL", "http://127.0.0.1:8080/v1")).rstrip("/")
+        self.server_url = (server_url or os.getenv("BITNET_SERVER_URL", "https://ai.alamiaconnect.com/v1")).rstrip("/")
         self.model_name = model_name or os.getenv("BITNET_MODEL_NAME", "/models/BitNet-b1.58-2B-4T/ggml-model-i2_s.gguf")
         self.model_path = model_path or os.getenv("BITNET_MODEL_PATH", "./models/bitnet_b1_58-3B.gguf")
         self.binary_path = binary_path or os.getenv("BITNET_CPP_PATH") or shutil.which("bitnet")
         self.threads = threads if threads is not None else int(os.getenv("BITNET_THREADS", "4"))
-        self.api_key = api_key or os.getenv("BITNET_API_KEY")
+        self.api_key = api_key or os.getenv("BITNET_API_KEY", "51129693340")
         self.timeout = timeout
 
     async def _try_http_server(

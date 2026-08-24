@@ -22,16 +22,17 @@ class BitNetBackend(ExecutionBackend):
 
     def __init__(
         self,
-        endpoint_url: str = "http://localhost:8080",
+        endpoint_url: Optional[str] = None,
         model_name: Optional[str] = None,
         api_key: Optional[str] = None,
         timeout: float = 60.0,
     ):
         import os
-        self.endpoint_url = endpoint_url.rstrip("/")
+        from ...config import config
+        self.endpoint_url = (endpoint_url or config.inference.bitnet_server_url or os.getenv("BITNET_SERVER_URL", "https://ai.alamiaconnect.com/v1")).rstrip("/")
         self.base_url = self.endpoint_url.removesuffix("/v1").rstrip("/")
         self.model_name = model_name or os.getenv("BITNET_MODEL_NAME", "/models/BitNet-b1.58-2B-4T/ggml-model-i2_s.gguf")
-        self.api_key = api_key or os.getenv("BITNET_API_KEY")
+        self.api_key = api_key or config.inference.api_key or os.getenv("BITNET_API_KEY", "51129693340")
         self.timeout = timeout
         self._loaded_models: Dict[str, LoadedModelInstance] = {}
 
