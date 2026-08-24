@@ -620,7 +620,19 @@ const PAGES = [
   {id:'system', label:'System', icon:'cpu'},
 ];
 
-let state = {page:'overview', modelId:null, employeeId:null, gardenFilter:'All', gardenQuery:'', tab:'Chat'};
+let state = {
+  page:'overview', 
+  modelId:null, 
+  employeeId:null, 
+  gardenFilter:'All', 
+  gardenQuery:'', 
+  tab:'Chat',
+  chatDraft: '',
+  quickDraft: '',
+  chatHistory: [
+    {role:'ai', text:'Hello! I am Alamia Local AI, running completely on your CPU. What would you like to run today?', meta:'Alamia Local AI · local'}
+  ]
+};
 
 function renderNav(){
   document.getElementById('nav').innerHTML = PAGES.map(p=>`
@@ -646,7 +658,7 @@ function setCrumb(trail, title){
 }
 
 /* ============================= DATA FETCHING ============================= */
-async function fetchAllData(){
+async function fetchAllData(isPolling=false){
   try {
     const [resM, resH, resS, resB, resMem, resT] = await Promise.all([
       fetch('/api/v1/garden/models').then(r=>r.json()).catch(()=>[]),
@@ -663,14 +675,26 @@ async function fetchAllData(){
     if(resMem && resMem.instances) live.memory = resMem;
     if(resT && resT.total_executions !== undefined) live.telemetry = resT;
 
-    // Update top header badges
+    // Update top header badges in-place without destroying DOM elements
     const loadedCount = (live.memory.instances || []).length || (live.models.filter(m=>m.status==='loaded').length);
-    document.getElementById('topLoadedCount').textContent = `${loadedCount} models loaded`;
+    const topCountEl = document.getElementById('topLoadedCount');
+    if(topCountEl) topCountEl.textContent = `${loadedCount} models loaded`;
     const totalRamMB = live.fabric.total_ram_used_mb || 0;
     const hostRamGB = (live.hardware.total_ram_mb/1024).toFixed(0);
-    document.getElementById('topRamUsage').textContent = `${(totalRamMB/1024).toFixed(1)} GB / ${hostRamGB} GB RAM`;
+    const topRamEl = document.getElementById('topRamUsage');
+    if(topRamEl) topRamEl.textContent = `${(totalRamMB/1024).toFixed(1)} GB / ${hostRamGB} GB RAM`;
 
-    render();
+    // If initial load or user action, render page. If background polling, never interrupt user typing
+    if(!isPolling){
+      render();
+    } else {
+      const activeTag = document.activeElement ? document.activeElement.tagName : '';
+      const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA';
+      if(!isTyping && (state.page === 'system' || state.page === 'overview')){
+        // Passive view refresh
+        render();
+      }
+    }
   } catch(e) {
     console.error("Fetch error:", e);
   }
@@ -720,7 +744,7 @@ function renderOverview(c){
       </div>
       ${routerTraceSVG()}
       <div class="ask-row">
-        <input id="quickPromptInput" type="text" placeholder="What do you want to run? e.g. summarize my customer emails..." />
+        <input id="quickPromptInput" type="text" placeholder="What do you want to run? e.g. summarize my customer emails..." value="${state.quickDraft || ''}" />
         <button class="btn btn-primary btn-sm" id="quickPromptBtn">Run</button>
       </div>
       <div id="quickPromptOutput" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
@@ -739,9 +763,12 @@ function renderOverview(c){
   const qInput = document.getElementById('quickPromptInput');
   const qOut = document.getElementById('quickPromptOutput');
   if(qBtn && qInput){
+    qInput.oninput = ()=>{ state.quickDraft = qInput.value; };
     qBtn.onclick = async ()=>{
       const val = qInput.value.trim();
       if(!val) return;
+      state.quickDraft = '';
+      qInput.value = '';
       qBtn.textContent = 'Routing...';
       qOut.style.display = 'block';
       qOut.innerHTML = '<span style="color:var(--text-faint);">Analyzing prompt & executing optimal model...</span>';
@@ -1045,9 +1072,7 @@ function renderPlayground(c){
           }).join('')}</tr>
           ${BENCH_COLS.map((col,i)=>`<tr><td>${col}</td>${['bitnet_b1_58_2b','qwen2_5_1_5b_instruct','phi3_5_mini_3_8b'].map(id=>`<td class="num">${BENCH[id] ? BENCH[id][i] : '—'}</td>`).join('')}</tr>`).join('')}
         </table>
-        <div style="font-size:11.5px;color:var(--text-dim);margin-top:14px;">This is what the Router evaluates when scoring candidate models against task constraints.</div>
-      </div>`;
-  } else if(state.tab==='Chat'){
+        <div style="font-size:11.5px;color:var(--text-dim);margin-top:14px;">This is what the Router evaluates when scoring candidate models against task constraints.</d  } else if(state.tab==='Chat'){
     body.innerHTML = `
       <div class="chat-frame">
         <div class="chat-strategy">
@@ -1056,10 +1081,14 @@ function renderPlayground(c){
         </div>
         <div class="tech-panel" id="stratPanel" style="margin:0;border-radius:0;border-left:none;border-right:none;">execution_route = BitNet / llama.cpp &nbsp; via ExecutionRegistry &nbsp; (zero silent fallback)</div>
         <div class="chat-body" id="chatMsgList">
-          <div class="msg ai">Hello! I am Alamia Local AI, running completely on your CPU. What would you like to run today?<div class="msg-meta">Alamia Local AI · local</div></div>
+          ${state.chatHistory.map(m=>`
+            <div class="msg ${m.role}">
+              ${m.text}
+              <div class="msg-meta">${m.meta || (m.role==='user'?'you':'local')}</div>
+            </div>`).join('')}
         </div>
         <div class="chat-input-row">
-          <input id="chatInput" type="text" placeholder="Ask anything... e.g. Who are you?"/>
+          <input id="chatInput" type="text" placeholder="Ask anything... e.g. Who are you?" value="${state.chatDraft || ''}"/>
           <button class="btn btn-primary btn-sm" id="chatSendBtn">Send</button>
         </div>
       </div>`;
@@ -1068,13 +1097,18 @@ function renderPlayground(c){
     const sendBtn = document.getElementById('chatSendBtn');
     const chatInput = document.getElementById('chatInput');
     const msgList = document.getElementById('chatMsgList');
+    msgList.scrollTop = msgList.scrollHeight;
+
+    chatInput.oninput = ()=>{ state.chatDraft = chatInput.value; };
 
     sendBtn.onclick = async ()=>{
       const text = chatInput.value.trim();
       if(!text) return;
+      state.chatDraft = '';
       chatInput.value = '';
 
-      msgList.innerHTML += `<div class="msg user">${text}</div>`;
+      state.chatHistory.push({role:'user', text: text, meta:'you'});
+      msgList.innerHTML += `<div class="msg user">${text}<div class="msg-meta">you</div></div>`;
       msgList.scrollTop = msgList.scrollHeight;
 
       const aiMsg = document.createElement('div');
@@ -1089,13 +1123,15 @@ function renderPlayground(c){
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({prompt: text})
         }).then(r=>r.json());
-        aiMsg.innerHTML = `${res.text}<div class="msg-meta">${res.executed_model_id} · ${res.latency_ms.toFixed(1)}ms · local</div>`;
+        const meta = `${res.executed_model_id} · ${res.latency_ms.toFixed(1)}ms · local`;
+        aiMsg.innerHTML = `${res.text}<div class="msg-meta">${meta}</div>`;
+        state.chatHistory.push({role:'ai', text: res.text, meta: meta});
       } catch(e) {
         aiMsg.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
       }
       msgList.scrollTop = msgList.scrollHeight;
     };
-    chatInput.onkeydown = (e)=>{ if(e.key==='Enter') sendBtn.click(); };
+    chatInput.onkeydown = (e)=>{ if(e.key==='Enter') sendBtn.click(); };') sendBtn.click(); };
   } else if(state.tab==='Embed'){
     body.innerHTML = `
       <div class="card">
@@ -1331,8 +1367,8 @@ function renderSystem(c){
 }
 
 /* ============================= INIT ============================= */
-fetchAllData();
-setInterval(fetchAllData, 15000);
+fetchAllData(false);
+setInterval(()=>fetchAllData(true), 15000);
 </script>
 </body>
 </html>
