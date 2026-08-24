@@ -1202,20 +1202,45 @@ function bindModelActions(root){
         btn.disabled = true;
         const pWrap = document.getElementById(`prog_${id}`);
         if(pWrap) pWrap.style.display = 'block';
+
+        const updateProgress = (d)=>{
+          const pct = Math.round(d.percentage || d.progress_pct || 0);
+          if(pWrap){
+            const bar = pWrap.querySelector('.progress-bar-fill');
+            if(bar) bar.style.width = `${pct}%`;
+          }
+          btn.textContent = `Installing (${pct}%)...`;
+          if(d.status==='installed'||d.status==='loaded'||pct>=100){
+            btn.textContent = 'Installed';
+            btn.disabled = false;
+            btn.dataset.load = id;
+            delete btn.dataset.install;
+            btn.className = 'btn btn-primary';
+            setTimeout(fetchAllData, 500);
+          }
+        };
+
         try {
-          const evt = new EventSource(`/api/v1/garden/models/${id}/acquire-stream`);
-          evt.onmessage = (msg)=>{
-            const d = JSON.parse(msg.data);
-            if(pWrap) pWrap.querySelector('.progress-bar-fill').style.width = `${d.progress_pct}%`;
-            if(d.status==='installed'||d.status==='completed'){
-              evt.close();
-              fetchAllData();
-            }
-          };
-          evt.onerror = ()=>{ evt.close(); fetchAllData(); };
-        } catch(err) {
           await fetch(`/api/v1/garden/models/${id}/install`, {method:'POST'});
-          fetchAllData();
+          const evt = new EventSource(`/api/v1/garden/models/${id}/events`);
+          const handleMsg = (msg)=>{
+            try {
+              const d = JSON.parse(msg.data);
+              updateProgress(d);
+              if(d.status==='installed'||d.status==='loaded'){
+                evt.close();
+              }
+            } catch(err){}
+          };
+          evt.onmessage = handleMsg;
+          evt.addEventListener('progress', handleMsg);
+          evt.addEventListener('message', handleMsg);
+          evt.onerror = ()=>{
+            evt.close();
+            setTimeout(fetchAllData, 1000);
+          };
+        } catch(err) {
+          setTimeout(fetchAllData, 1500);
         }
       }
       if(btn.dataset.load){

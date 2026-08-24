@@ -121,11 +121,22 @@ async def uninstall_model_endpoint(model_id: str) -> Dict[str, Any]:
     return {"status": "uninstalled" if success else "error", "model_id": model_id}
 
 @router.get("/models/{model_id}/events")
-async def stream_model_progress(model_id: str):
+@router.get("/models/{model_id}/acquire-stream")
+async def stream_model_progress(model_id: str, background_tasks: BackgroundTasks):
     """Server-Sent Events (SSE) live stream for download/verification progress."""
+    manifest = garden.get(model_id)
+    if not manifest:
+        raise HTTPException(status_code=404, detail=f"Model '{model_id}' not found.")
+
+    status = lifecycle_manager.get_status(model_id)
+    if status == ModelStatus.AVAILABLE:
+        background_tasks.add_task(lifecycle_manager.install_model, model_id)
+
     async def event_generator():
         async for prog in lifecycle_manager.subscribe_progress(model_id):
-            data = json.dumps(asdict(prog))
+            data_dict = asdict(prog)
+            data_dict["progress_pct"] = data_dict.get("percentage", 0.0)
+            data = json.dumps(data_dict)
             yield {"event": "progress", "data": data}
             yield {"event": "message", "data": data}
             await asyncio.sleep(0.01)
