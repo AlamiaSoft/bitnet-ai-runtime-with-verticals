@@ -3,7 +3,7 @@ import asyncio
 import time
 from typing import Any, AsyncGenerator, Dict, List, Optional
 from ..config import AppConfig, config
-from ..execution.registry import ExecutionRegistry
+from ..execution.registry import ExecutionRegistry, execution_registry as global_execution_registry
 from ..inference.base import CompletionResponse, TokenUsage
 from ..logging import logger
 from .models import (
@@ -37,7 +37,7 @@ class AIRouter:
         self.config = cfg or config
         self.registry = registry or ModelCapabilityRegistry()
         self.policy_engine = policy_engine or RoutingPolicyEngine(self.registry)
-        self.execution_registry = execution_registry or ExecutionRegistry(use_mock_fallback_for_tests=True)
+        self.execution_registry = execution_registry or global_execution_registry
         self._engine_cache: Dict[str, Any] = {}
 
     def infer_task_requirements(self, prompt: str, task_type: Optional[TaskType] = None) -> TaskRequirements:

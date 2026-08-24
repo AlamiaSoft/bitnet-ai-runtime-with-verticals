@@ -101,7 +101,10 @@ async def test_router_automatic_fallback_on_primary_failure(tmp_path):
         tier=ModelTier.LOCAL_1BIT,
         provider="broken_driver",
         capabilities={TaskType.EXTRACTION},
-        quality_score=5.0,  # High score so it is selected primary
+        task_ratings={TaskType.EXTRACTION: 10.0},
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        quality_score=10.0,  # High score so it is selected primary
     )
     registry.register(failing_model)
 

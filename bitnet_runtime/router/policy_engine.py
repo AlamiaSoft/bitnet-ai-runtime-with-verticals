@@ -90,7 +90,7 @@ class RoutingPolicyEngine:
             if getattr(m, "is_loaded", False):
                 score += 15.0
             elif getattr(m, "is_installed", False):
-                score += 8.0
+                score += 5.0
 
             # Preferred tier bonus
             if req.preferred_tier and m.tier == req.preferred_tier:
