@@ -31,6 +31,8 @@ class ModelCapabilityProfile:
     typical_latency_ms: float = 200.0
     quality_score: float = 3.0     # Baseline general quality rating (1.0 to 5.0)
     is_healthy: bool = True
+    is_installed: bool = False
+    is_loaded: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass

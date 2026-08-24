@@ -628,6 +628,25 @@ tr:last-child td{border-bottom:none;}
             </div>
           </div>
         </div>
+        <!-- EXTRACT TAB -->
+        <div id="tabExtract" class="play-tab-content" style="display:none;">
+          <div class="card">
+            <div class="eyebrow">Structured Entity & JSON Extraction</div>
+            <div class="section-lede">Extract structured schemas, entities, key fields, and JSON objects from raw unstructured documents, emails, or receipts using high-precision SLMs.</div>
+            <div style="margin-bottom:12px;">
+              <label style="font-size:12px;color:var(--text-dim);">Input Unstructured Text</label>
+              <textarea id="extractInput" class="search-box" style="width:100%;height:100px;margin-top:4px;font-family:var(--font-mono);font-size:12px;resize:vertical;" placeholder="Paste raw text or email here...">Customer Inquiry from Sarah Connor: Phone +1-555-0199, Email: sarah@cyberdyne.io. Requested quote for 50 licenses of Enterprise Tier with annual billing starting Oct 1st.</textarea>
+            </div>
+            <div style="margin-bottom:14px;">
+              <label style="font-size:12px;color:var(--text-dim);">Target Extraction Fields / Schema</label>
+              <input type="text" id="extractSchema" class="search-box" style="width:100%;margin-top:4px;" value="name, phone, email, quantity, tier, billing_cycle, start_date"/>
+            </div>
+            <button class="btn btn-primary btn-sm" id="extractRunBtn">Extract Structured Data</button>
+            <div id="extractOut" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
+          </div>
+        </div>
+
+        <!-- EMBED TAB -->
         <div id="tabEmbed" class="play-tab-content" style="display:none;">
           <div class="card">
             <div class="eyebrow">Vector Embeddings & Semantic Similarity</div>
@@ -640,22 +659,76 @@ tr:last-child td{border-bottom:none;}
             <div id="embedOut" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
           </div>
         </div>
+
+        <!-- RAG TAB -->
+        <div id="tabRAG" class="play-tab-content" style="display:none;">
+          <div class="card">
+            <div class="eyebrow">Local Document RAG & Semantic Memory Retrieval</div>
+            <div class="section-lede">Perform localized vector searches against indexed workspace documents and generate strictly grounded answers with source attribution.</div>
+            <div style="margin-bottom:12px;">
+              <label style="font-size:12px;color:var(--text-dim);">Knowledge Search Query</label>
+              <input type="text" id="ragQuery" class="search-box" style="width:100%;margin-top:4px;" value="What are the offline execution capabilities and memory limits of BitNet?"/>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px;">
+              <label style="font-size:12px;color:var(--text-dim);">Top-K Documents:</label>
+              <select id="ragTopK" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:4px 8px;">
+                <option value="3">3 Chunks</option>
+                <option value="5">5 Chunks</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" id="ragRunBtn">Search & Synthesize Answer</button>
+            <div id="ragOut" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
+          </div>
+        </div>
+
+        <!-- CLASSIFY TAB -->
+        <div id="tabClassify" class="play-tab-content" style="display:none;">
+          <div class="card">
+            <div class="eyebrow">High-Throughput Intent & Content Classification</div>
+            <div class="section-lede">Categorize inbound communications, detect customer sentiment, assess urgency, or assign triage queues using high-efficiency 1-bit ternary SLMs.</div>
+            <div style="margin-bottom:12px;">
+              <label style="font-size:12px;color:var(--text-dim);">Text to Classify</label>
+              <textarea id="classifyInput" class="search-box" style="width:100%;height:80px;margin-top:4px;font-family:var(--font-sans);font-size:12.5px;resize:vertical;" placeholder="Enter message to classify...">Our production cluster crashed during the morning migration and database sync is stalled. We need immediate technical assistance!</textarea>
+            </div>
+            <div style="margin-bottom:14px;">
+              <label style="font-size:12px;color:var(--text-dim);">Candidate Categories (comma separated)</label>
+              <input type="text" id="classifyLabels" class="search-box" style="width:100%;margin-top:4px;" value="Critical Outage, General Inquiry, Billing, Feature Request, Low Priority"/>
+            </div>
+            <button class="btn btn-primary btn-sm" id="classifyRunBtn">Classify Text</button>
+            <div id="classifyOut" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
+          </div>
+        </div>
+
+        <!-- CODE TAB -->
+        <div id="tabCode" class="play-tab-content" style="display:none;">
+          <div class="card">
+            <div class="eyebrow">Offline Code Generation & Refactoring</div>
+            <div class="section-lede">Synthesize functions, generate unit test fixtures, explain algorithms, or refactor scripts entirely on-device without cloud telemetry or data leakage.</div>
+            <div style="display:flex;gap:12px;margin-bottom:12px;align-items:center;">
+              <label style="font-size:12px;color:var(--text-dim);">Language:</label>
+              <select id="codeLang" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:4px 8px;">
+                <option value="Python">Python</option>
+                <option value="JavaScript">JavaScript / TypeScript</option>
+                <option value="Rust">Rust</option>
+                <option value="SQL">SQL</option>
+                <option value="Bash">Bash</option>
+              </select>
+            </div>
+            <div style="margin-bottom:14px;">
+              <label style="font-size:12px;color:var(--text-dim);">Task Prompt / Coding Instruction</label>
+              <textarea id="codeInput" class="search-box" style="width:100%;height:90px;margin-top:4px;font-family:var(--font-mono);font-size:12px;resize:vertical;" placeholder="Describe the code to generate or paste snippet to refactor...">Write a thread-safe LRU Cache implementation with get, put, and capacity eviction.</textarea>
+            </div>
+            <button class="btn btn-primary btn-sm" id="codeRunBtn">Generate Code</button>
+            <div id="codeOut" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
+          </div>
+        </div>
+
+        <!-- COMPARE TAB -->
         <div id="tabCompare" class="play-tab-content" style="display:none;">
           <div class="card">
             <div class="eyebrow">Model comparison</div>
             <div id="compareTableWrap"></div>
             <div style="font-size:11.5px;color:var(--text-dim);margin-top:14px;">This is what the Router evaluates when scoring candidate models against task constraints.</div>
-          </div>
-        </div>
-        <div id="tabGeneric" class="play-tab-content" style="display:none;">
-          <div class="card" style="color:var(--text-dim);">
-            <div class="eyebrow" id="genericTabTitle">Task Workspace</div>
-            <div id="genericTabDesc">Workspace — drop in your input and run it locally. Results and confidence scores appear inline.</div>
-            <div class="ask-row" style="margin-top:16px;">
-              <input type="text" id="genericTabInput" placeholder="Input..."/>
-              <button class="btn btn-primary btn-sm" id="genericTabBtn">Run</button>
-            </div>
-            <div id="genericTabOut" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
           </div>
         </div>
       </section>
@@ -1453,16 +1526,9 @@ function initStaticViews(){
       el.classList.add('active');
       const tab = el.dataset.ptab;
       document.querySelectorAll('.play-tab-content').forEach(c=>c.style.display='none');
-      if(tab==='Chat') document.getElementById('tabChat').style.display='block';
-      else if(tab==='Embed') document.getElementById('tabEmbed').style.display='block';
-      else if(tab==='Compare') {
-        document.getElementById('tabCompare').style.display='block';
-        renderCompareTab();
-      } else {
-        document.getElementById('tabGeneric').style.display='block';
-        document.getElementById('genericTabTitle').textContent = tab;
-        document.getElementById('genericTabInput').placeholder = `Input for ${tab.toLowerCase()}...`;
-      }
+      const targetTab = document.getElementById(`tab${tab}`);
+      if(targetTab) targetTab.style.display = 'block';
+      if(tab==='Compare') renderCompareTab();
     };
   });
 
@@ -1520,6 +1586,140 @@ function initStaticViews(){
   };
   chatInput.onkeydown = (e)=>{ if(e.key==='Enter') sendBtn.click(); };
 
+  // Playground Extract Handler
+  const extBtn = document.getElementById('extractRunBtn');
+  if(extBtn){
+    extBtn.onclick = async ()=>{
+      const text = document.getElementById('extractInput').value.trim();
+      const schema = document.getElementById('extractSchema').value.trim();
+      const out = document.getElementById('extractOut');
+      if(!text) return;
+      extBtn.textContent = 'Extracting...';
+      out.style.display = 'block';
+      out.innerHTML = '<span style="color:var(--text-faint);">Routing to extraction SLM...</span>';
+      try {
+        const prompt = `Extract the following fields [${schema}] from this text:
+
+${text}
+
+Return the extracted structured data:`;
+        const res = await fetch('/api/v1/router/complete', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({prompt: prompt, task_type: 'extraction'})
+        }).then(r=>r.json());
+        out.innerHTML = `<b>Executed on:</b> <span style="color:var(--accent);">${res.executed_model_id}</span> (${res.latency_ms.toFixed(1)}ms · local)<br/><br/><pre style="white-space:pre-wrap;color:var(--text);">${res.text}</pre>`;
+      } catch(e) {
+        out.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
+      } finally {
+        extBtn.textContent = 'Extract Structured Data';
+      }
+    };
+  }
+
+  // Playground RAG Handler
+  const ragBtn = document.getElementById('ragRunBtn');
+  if(ragBtn){
+    ragBtn.onclick = async ()=>{
+      const query = document.getElementById('ragQuery').value.trim();
+      const topK = parseInt(document.getElementById('ragTopK').value || '3');
+      const out = document.getElementById('ragOut');
+      if(!query) return;
+      ragBtn.textContent = 'Retrieving & Synthesizing...';
+      out.style.display = 'block';
+      out.innerHTML = '<span style="color:var(--text-faint);">Searching semantic vector index and synthesizing grounded answer...</span>';
+      try {
+        const memRes = await fetch('/api/v1/memory/search', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({query: query, top_k: topK})
+        }).then(r=>r.json()).catch(()=>({results:[]}));
+
+        const chunks = (memRes.results || []).map(r=>`- ${r.text_content} (Score: ${(r.score*100).toFixed(1)}%)`).join('
+');
+        const contextPrompt = chunks ? `Context from local knowledge base:
+${chunks}
+
+Question: ${query}
+
+Answer strictly based on the context above:` : query;
+
+        const res = await fetch('/api/v1/router/complete', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({prompt: contextPrompt, task_type: 'rag_qa'})
+        }).then(r=>r.json());
+
+        out.innerHTML = `<b>Executed on:</b> <span style="color:var(--accent);">${res.executed_model_id}</span> (${res.latency_ms.toFixed(1)}ms · local)<br/><b>Retrieved Chunks:</b> ${memRes.results?.length || 0} documents<br/><br/><b>Synthesized Answer:</b><br/>${res.text}`;
+      } catch(e) {
+        out.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
+      } finally {
+        ragBtn.textContent = 'Search & Synthesize Answer';
+      }
+    };
+  }
+
+  // Playground Classify Handler
+  const clsBtn = document.getElementById('classifyRunBtn');
+  if(clsBtn){
+    clsBtn.onclick = async ()=>{
+      const text = document.getElementById('classifyInput').value.trim();
+      const labels = document.getElementById('classifyLabels').value.trim();
+      const out = document.getElementById('classifyOut');
+      if(!text) return;
+      clsBtn.textContent = 'Classifying...';
+      out.style.display = 'block';
+      out.innerHTML = '<span style="color:var(--text-faint);">Classifying with 1-bit SLM...</span>';
+      try {
+        const prompt = `Classify the following text into exactly one of these categories [${labels}]:
+
+"${text}"
+
+Selected Category:`;
+        const res = await fetch('/api/v1/router/complete', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({prompt: prompt, task_type: 'classification'})
+        }).then(r=>r.json());
+        out.innerHTML = `<b>Executed on:</b> <span style="color:var(--accent);">${res.executed_model_id}</span> (${res.latency_ms.toFixed(1)}ms · local)<br/><br/><b>Classification Result:</b><br/>${res.text}`;
+      } catch(e) {
+        out.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
+      } finally {
+        clsBtn.textContent = 'Classify Text';
+      }
+    };
+  }
+
+  // Playground Code Handler
+  const codeBtn = document.getElementById('codeRunBtn');
+  if(codeBtn){
+    codeBtn.onclick = async ()=>{
+      const lang = document.getElementById('codeLang').value;
+      const promptText = document.getElementById('codeInput').value.trim();
+      const out = document.getElementById('codeOut');
+      if(!promptText) return;
+      codeBtn.textContent = 'Generating Code...';
+      out.style.display = 'block';
+      out.innerHTML = '<span style="color:var(--text-faint);">Synthesizing code offline...</span>';
+      try {
+        const prompt = `Write clean, production-ready ${lang} code for the following request:
+${promptText}
+
+Code:`;
+        const res = await fetch('/api/v1/router/complete', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({prompt: prompt, task_type: 'coding'})
+        }).then(r=>r.json());
+        out.innerHTML = `<b>Executed on:</b> <span style="color:var(--accent);">${res.executed_model_id}</span> (${res.latency_ms.toFixed(1)}ms · local)<br/><br/><pre style="white-space:pre-wrap;background:var(--surface-3);padding:10px;border-radius:6px;font-family:var(--font-mono);font-size:12px;">${res.text}</pre>`;
+      } catch(e) {
+        out.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
+      } finally {
+        codeBtn.textContent = 'Generate Code';
+      }
+    };
+  }
+
   // Playground Embed Setup
   document.getElementById('calcEmbedBtn').onclick = async ()=>{
     const out = document.getElementById('embedOut');
@@ -1537,26 +1737,6 @@ function initStaticViews(){
       out.innerHTML = `<b>Model:</b> ${res.model_name || 'BGE Small v1.5'} (${res.latency_ms}ms)<br/><b>Cosine Similarity:</b> <span style="color:var(--success);font-weight:700;">${sim}</span> (Strong semantic match)`;
     } catch(e) {
       out.innerHTML = `<b>Cosine Similarity:</b> <span style="color:var(--success);font-weight:700;">0.892</span> (Calculated locally)`;
-    }
-  };
-
-  // Playground Generic tab run
-  document.getElementById('genericTabBtn').onclick = async ()=>{
-    const input = document.getElementById('genericTabInput');
-    const out = document.getElementById('genericTabOut');
-    const val = input.value.trim();
-    if(!val) return;
-    out.style.display = 'block';
-    out.innerHTML = 'Executing...';
-    try {
-      const res = await fetch('/api/v1/router/complete', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({prompt: val})
-      }).then(r=>r.json());
-      out.innerHTML = `<b>Executed on:</b> ${res.executed_model_id} (${res.latency_ms.toFixed(1)}ms)<br/><br/>${res.text}`;
-    } catch(e) {
-      out.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
     }
   };
 

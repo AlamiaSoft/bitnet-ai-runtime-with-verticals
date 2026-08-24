@@ -86,6 +86,12 @@ class RoutingPolicyEngine:
             score = 50.0  # Base score
             task_rating = m.task_ratings.get(req.task_type, m.quality_score)
 
+            # Installation & In-Memory Priority (Favor ready/installed models over uninstalled catalog items)
+            if getattr(m, "is_loaded", False):
+                score += 15.0
+            elif getattr(m, "is_installed", False):
+                score += 8.0
+
             # Preferred tier bonus
             if req.preferred_tier and m.tier == req.preferred_tier:
                 score += 30.0

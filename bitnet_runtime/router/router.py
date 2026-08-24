@@ -145,15 +145,23 @@ class AIRouter:
                 attempt_info["duration_ms"] = round(call_duration_ms, 2)
                 trace.attempts.append(attempt_info)
 
-                trace.executed_model_id = candidate.model_id
-                trace.fallback_invoked = is_fallback
+                loaded_inst = self.execution_registry._loaded_instances.get(candidate.model_id) if hasattr(self, "execution_registry") and self.execution_registry else None
+                if candidate.provider not in self._engine_cache and manifest.provider_backend != "bitnet" and loaded_inst and loaded_inst.backend_type.value == "bitnet-sidecar":
+                    trace.fallback_invoked = True
+                    trace.executed_model_id = "bitnet_b1_58_2b"
+                    if trace.decision:
+                        trace.decision.rationale = f"Executed on BitNet b1.58 2B (failover: {candidate.name} is not installed locally)"
+                else:
+                    trace.executed_model_id = candidate.model_id
+                    trace.fallback_invoked = is_fallback
+
                 trace.latency_ms = round((time.time() - start_time) * 1000.0, 2)
                 trace.token_usage = resp.usage
                 trace.estimated_cost_usd = round(cost, 6)
                 trace.success = True
 
                 logger.debug(
-                    f"Router completed task '{req.task_type}' on '{candidate.model_id}' "
+                    f"Router completed task '{req.task_type}' on '{trace.executed_model_id}' "
                     f"in {trace.latency_ms}ms (Cost: ${trace.estimated_cost_usd:.6f})"
                 )
                 return resp, trace
