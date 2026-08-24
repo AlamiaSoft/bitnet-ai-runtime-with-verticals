@@ -83,5 +83,10 @@ The platform is structured around 5 foundational pillars:
 
 ### 3.7 Server, Web Dashboard & CLI (`bitnet_runtime.server`, `bitnet_runtime.cli`)
 - FastAPI daemon exposing REST APIs (`/api/v1/garden`, `/api/v1/execution`, `/api/v1/router`, `/api/v1/agents`, `/api/v1/memory`, `/api/v1/webhooks`) and SSE streaming.
-- Interactive Single-Page Web Dashboard (`/dashboard`) with Model Garden, Model Playground, Inference Fabric diagnostics, Hardware & Storage, AI Router Studio, and Telemetry Logs.
+- **Alamia Local AI Console (`/dashboard`)**:
+  - Interactive Single-Page Web Application spanning 8 views (Overview, Model Garden, Model Details, AI Router, AI Playground, AI Employees, Workflows, System & Telemetry).
+  - **Dual-Skin Token Architecture**:
+    - **Alamia Core (v0.1 — Default)**: Inter + JetBrains Mono typography, royal blue `#2563EB` accent, sleek slate surfaces (`#0F172A` in dark, `#FFFFFF` in light), and flat signature schematic router trace.
+    - **Terminal Moss (Custom Skin)**: Space Grotesk + IBM Plex Mono typography, cyber-emerald `#B7E24A` accent, deep obsidian `#0A0D0B` surfaces.
+  - **Theme Modes**: Full `System` / `Light` / `Dark` automatic and manual switching with `localStorage` persistence.
 - Typer CLI providing commands (`serve`, `info`, `run`, `ingest`, `search`, `vertical`).
