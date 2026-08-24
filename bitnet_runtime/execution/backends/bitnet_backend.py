@@ -23,17 +23,20 @@ class BitNetBackend(ExecutionBackend):
     def __init__(
         self,
         endpoint_url: str = "http://localhost:8080",
+        model_name: Optional[str] = None,
         api_key: Optional[str] = None,
         timeout: float = 60.0,
     ):
+        import os
         self.endpoint_url = endpoint_url.rstrip("/")
         self.base_url = self.endpoint_url.removesuffix("/v1").rstrip("/")
-        self.api_key = api_key
+        self.model_name = model_name or os.getenv("BITNET_MODEL_NAME", "/models/BitNet-b1.58-2B-4T/ggml-model-i2_s.gguf")
+        self.api_key = api_key or os.getenv("BITNET_API_KEY")
         self.timeout = timeout
         self._loaded_models: Dict[str, LoadedModelInstance] = {}
 
     def _get_headers(self) -> Dict[str, str]:
-        headers = {}
+        headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         return headers
@@ -106,8 +109,10 @@ class BitNetBackend(ExecutionBackend):
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
+        target_model = self.model_name if (not model_id.startswith("/") or model_id == "bitnet_b1_58_2b") else model_id
+
         payload = {
-            "model": model_id,
+            "model": target_model,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
