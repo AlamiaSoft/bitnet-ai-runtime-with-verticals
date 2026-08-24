@@ -41,6 +41,7 @@ class ModelManager:
                 model_name=self.settings.model_name,
                 model_path=self.settings.model_path,
                 threads=self.settings.threads,
+                api_key=self.settings.api_key,
             )
         elif target_provider == "llamacpp":
             engine = LlamaCppEngine(

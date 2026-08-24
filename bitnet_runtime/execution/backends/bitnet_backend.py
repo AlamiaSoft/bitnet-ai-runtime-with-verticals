@@ -43,18 +43,27 @@ class BitNetBackend(ExecutionBackend):
         return BackendType.BITNET_SIDECAR
 
     async def check_health(self) -> BackendHealth:
+        headers = self._get_headers()
+        endpoints_to_try = [
+            f"{self.base_url}/health",
+            f"{self.endpoint_url}/health",
+            f"{self.base_url}/models",
+            f"{self.endpoint_url}/models",
+        ]
         try:
-            async with httpx.AsyncClient(timeout=3.0, headers=self._get_headers()) as client:
-                res = await client.get(f"{self.base_url}/health")
-                if res.status_code != 200:
-                    res = await client.get(f"{self.endpoint_url}/health")
-                if res.status_code == 200:
-                    return BackendHealth(
-                        backend_type=self.backend_type,
-                        status=BackendStatus.ONLINE,
-                        endpoint_url=self.endpoint_url,
-                        active_models=list(self._loaded_models.keys()),
-                    )
+            async with httpx.AsyncClient(timeout=4.0, headers=headers) as client:
+                for ep in endpoints_to_try:
+                    try:
+                        res = await client.get(ep)
+                        if res.status_code == 200:
+                            return BackendHealth(
+                                backend_type=self.backend_type,
+                                status=BackendStatus.ONLINE,
+                                endpoint_url=self.endpoint_url,
+                                active_models=list(self._loaded_models.keys()),
+                            )
+                    except Exception:
+                        continue
         except Exception as e:
             logger.debug(f"bitnet-server health check offline: {e}")
         return BackendHealth(
@@ -106,14 +115,22 @@ class BitNetBackend(ExecutionBackend):
         }
 
         async with httpx.AsyncClient(timeout=self.timeout, headers=self._get_headers()) as client:
-            # Try chat completions or completion endpoint
-            res = await client.post(f"{self.base_url}/v1/chat/completions", json=payload)
-            if res.status_code != 200:
-                res = await client.post(f"{self.base_url}/chat/completions", json=payload)
-            if res.status_code != 200:
-                res = await client.post(f"{self.endpoint_url}/chat/completions", json=payload)
-            if res.status_code != 200:
-                raise RuntimeError(f"bitnet-server error ({res.status_code}): {res.text}")
+            res = None
+            for target_url in [
+                f"{self.endpoint_url}/chat/completions",
+                f"{self.base_url}/v1/chat/completions",
+                f"{self.base_url}/chat/completions",
+            ]:
+                try:
+                    res = await client.post(target_url, json=payload)
+                    if res.status_code == 200:
+                        break
+                except Exception:
+                    continue
+
+            if res is None or res.status_code != 200:
+                err_msg = res.text if res is not None else "Endpoint unreachable"
+                raise RuntimeError(f"bitnet-server error: {err_msg}")
             data = res.json()
             choice = data["choices"][0]["message"]
             text = choice.get("content", "")

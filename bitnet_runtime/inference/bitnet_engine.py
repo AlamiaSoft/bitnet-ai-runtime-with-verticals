@@ -24,6 +24,7 @@ class BitNetEngine(InferenceEngine):
         model_path: Optional[str] = None,
         binary_path: Optional[str] = None,
         threads: Optional[int] = None,
+        api_key: Optional[str] = None,
         timeout: float = 60.0,
     ):
         self.server_url = (server_url or os.getenv("BITNET_SERVER_URL", "http://127.0.0.1:8080/v1")).rstrip("/")
@@ -31,6 +32,7 @@ class BitNetEngine(InferenceEngine):
         self.model_path = model_path or os.getenv("BITNET_MODEL_PATH", "./models/bitnet_b1_58-3B.gguf")
         self.binary_path = binary_path or os.getenv("BITNET_CPP_PATH") or shutil.which("bitnet")
         self.threads = threads if threads is not None else int(os.getenv("BITNET_THREADS", "4"))
+        self.api_key = api_key or os.getenv("BITNET_API_KEY")
         self.timeout = timeout
 
     async def _try_http_server(
@@ -54,9 +56,18 @@ class BitNetEngine(InferenceEngine):
             "stop": stop_sequences or [],
         }
 
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                res = await client.post(f"{self.server_url}/chat/completions", json=payload)
+            async with httpx.AsyncClient(timeout=self.timeout, headers=headers) as client:
+                endpoint = f"{self.server_url}/chat/completions"
+                res = await client.post(endpoint, json=payload)
+                if res.status_code != 200:
+                    # Try fallback without duplicate /v1
+                    alt_url = self.server_url.removesuffix("/v1")
+                    res = await client.post(f"{alt_url}/v1/chat/completions", json=payload)
                 if res.status_code == 200:
                     data = res.json()
                     choice = data["choices"][0]["message"]
@@ -72,6 +83,8 @@ class BitNetEngine(InferenceEngine):
                         ),
                         raw_output=data,
                     )
+                else:
+                    logger.debug(f"bitnet-server HTTP {res.status_code}: {res.text[:120]}")
         except Exception as e:
             logger.debug(f"bitnet-server HTTP request skipped ({e})")
         return None
