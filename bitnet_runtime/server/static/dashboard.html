@@ -742,26 +742,67 @@ tr:last-child td{border-bottom:none;}
       <!-- 7. EMPLOYEE DETAIL PAGE -->
       <section class="page" id="page-employee-detail">
         <a class="back-link" data-nav="employees"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M15 18l-6-6 6-6"/></svg> Back to AI Employees</a>
-        <div class="detail-head">
-          <div>
-            <div class="detail-title" id="empTitle">Employee</div>
-            <div class="detail-sub" id="empRole">Role</div>
+        
+        <div class="detail-head" style="align-items:flex-start;">
+          <div style="display:flex;gap:16px;align-items:center;">
+            <div id="empAvatar" style="width:54px;height:54px;border-radius:12px;background:var(--accent-wash);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;border:1px solid var(--accent);">AI</div>
+            <div>
+              <div class="detail-title" id="empTitle">Employee</div>
+              <div class="detail-sub" id="empRole">Role</div>
+              <div id="empDept" style="font-size:12px;color:var(--text-dim);margin-top:2px;">Department</div>
+            </div>
           </div>
-          <button class="btn btn-primary" data-nav="playground">Open in Playground</button>
+          <div style="display:flex;gap:10px;">
+            <span class="status loaded"><span class="d"></span>Active Digital Worker</span>
+          </div>
         </div>
-        <div class="two-col">
-          <div class="card">
-            <div class="eyebrow">Permissions</div>
-            <ul class="list-plain" id="empPermList"></ul>
-            <div class="eyebrow" style="margin-top:22px;">Workflows using this employee</div>
-            <ul class="list-plain" id="empWfList"></ul>
+
+        <!-- Performance KPIs Row -->
+        <div class="eyebrow" style="margin-top:20px;">Operational KPIs and Targets</div>
+        <div class="grid grid-3" id="empKpiGrid" style="margin-bottom:20px;"></div>
+
+        <div class="two-col" style="grid-template-columns:1.2fr 0.8fr;gap:20px;">
+          <!-- Left: Task Sandbox & Direct Self-Learning Teaching -->
+          <div>
+            <div class="card" style="margin-bottom:20px;">
+              <div class="eyebrow">Task Sandbox and Interactive Execution</div>
+              <div class="section-lede">Assign a task directly to this digital worker. Multi-tier AI routing and self-learned guidelines will be applied automatically.</div>
+              <div style="margin-bottom:12px;">
+                <label style="font-size:12px;color:var(--text-dim);">Task Prompt</label>
+                <textarea id="empTaskInput" class="search-box" style="width:100%;height:85px;margin-top:4px;font-family:var(--font-sans);font-size:12px;resize:vertical;" placeholder="Describe task for this employee..."></textarea>
+              </div>
+              <div style="margin-bottom:14px;">
+                <label style="font-size:12px;color:var(--text-dim);">Teach / Operator Correction (Optional feedback for self-learning)</label>
+                <input type="text" id="empFeedbackInput" class="search-box" style="width:100%;margin-top:4px;" placeholder="e.g. Always format enterprise proposals with annual upfront billing discounts."/>
+              </div>
+              <button class="btn btn-primary btn-sm" id="empTaskRunBtn">Execute Employee Task</button>
+              <div id="empTaskOut" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-size:12px;"></div>
+            </div>
+
+            <!-- Self-Learned Invariants & Memory Panel -->
+            <div class="card">
+              <div class="eyebrow" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>Self-Learned Guidelines and Invariants</span>
+                <span id="empRuleCountTag" class="tag" style="background:var(--accent-wash);color:var(--accent);">0 rules</span>
+              </div>
+              <div class="section-lede">Rules and constraints automatically extracted from operator corrections and successful workflows.</div>
+              <div id="empLearnedRulesList" style="margin-top:12px;"></div>
+            </div>
           </div>
-          <div class="card">
-            <div class="eyebrow">Configuration</div>
-            <div class="kv"><span>Model strategy</span><span>Automatic</span></div>
-            <div class="kv"><span>Memory</span><span id="empMemory">Semantic</span></div>
-            <div class="kv"><span>Tools</span><span id="empTools">Filesystem</span></div>
-            <div class="kv"><span>Status</span><span class="status loaded"><span class="d"></span>Ready</span></div>
+
+          <!-- Right: Persona Profile & Permissions -->
+          <div>
+            <div class="card" style="margin-bottom:20px;">
+              <div class="eyebrow">Persona and Responsibilities</div>
+              <ul class="list-plain" id="empRespList" style="margin-bottom:14px;"></ul>
+              <div class="eyebrow" style="margin-top:18px;">Assigned Tools</div>
+              <div id="empToolsTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+            </div>
+
+            <div class="card">
+              <div class="eyebrow">Safety and Permission Matrix</div>
+              <ul class="list-plain" id="empPermList"></ul>
+            </div>
           </div>
         </div>
       </section>
@@ -919,14 +960,70 @@ const BENCH = {
 };
 
 const EMPLOYEES = [
-  {id:'inbox', name:'AI Employee', role:'Email + Files + Calendar', icon:'mail',
-   tools:['Email','Filesystem','Calendar'], memory:'Episodic + Semantic',
-   permissions:[['Read email','allow'],['Draft replies before sending','ask'],['Read files in workspace','allow'],['Delete files','deny']],
-   workflows:['Daily inbox triage','Meeting prep']},
-  {id:'memory', name:'Personal Memory OS', role:'Personal AI Memory + Local RAG', icon:'brain',
-   tools:['Semantic Memory','Filesystem'], memory:'Semantic (vector index)',
-   permissions:[['Read workspace documents','allow'],['Write memory index','allow'],['Access network','deny']],
-   workflows:['Nightly reindex']},
+  {
+    id:'sales_alex', name:'Alex Morgan', role:'Inbound & Outbound Sales Specialist', dept:'Revenue & Sales', initials:'AM', icon:'mail',
+    responsibilities:['Qualify incoming leads & assess ICP fit','Draft high-conversion follow-ups','Extract budget, timeline & contacts into CRM','Schedule discovery & demo calls'],
+    skills:['Lead Qualification','Email Copywriting','CRM Hygiene','Deal Sizing'],
+    tools:['CRM Store','Email Sender','Calendar Scheduler','Web Search'],
+    permissions:[['View CRM records','allow'],['Update lead status','allow'],['Draft email responses','allow'],['Send external email','ask'],['Issue pricing discount','ask'],['Delete contact records','deny']],
+    kpis:[{name:'Lead Triage Speed',target:'< 5 min',current:'1.2 min'},{name:'Qualification Accuracy',target:'> 90%',current:'94.5%'},{name:'Meeting Conversion',target:'> 20%',current:'23.8%'}]
+  },
+  {
+    id:'support_elena', name:'Elena Rostova', role:'Customer Support & Success', dept:'Customer Experience', initials:'ER', icon:'users',
+    responsibilities:['Triage inquiries & assess sentiment/urgency','Search local docs & synthesize solutions','Route critical bugs to on-call engineering','Maintain resolution quality in KB'],
+    skills:['Ticket Triage','RAG Knowledge Search','Sentiment Analysis','Escalations'],
+    tools:['Helpdesk Tickets','RAG Memory','Knowledge Base','Slack Alerter'],
+    permissions:[['Search knowledge base','allow'],['Read customer ticket','allow'],['Draft resolution reply','allow'],['Send ticket reply','ask'],['Issue customer refund','ask'],['Wipe customer data','deny']],
+    kpis:[{name:'First Response Time',target:'< 2 min',current:'45s'},{name:'CSAT Satisfaction',target:'> 95%',current:'97.2%'},{name:'Resolution Rate',target:'> 80%',current:'84.0%'}]
+  },
+  {
+    id:'marketing_marcus', name:'Marcus Vance', role:'Growth & Content Strategist', dept:'Marketing', initials:'MV', icon:'grid',
+    responsibilities:['Draft articles for blogs, social & newsletters','Generate SEO keyword clusters & briefs','Analyze campaign metrics & summarize trends','A/B test subject lines & copy hooks'],
+    skills:['Copywriting','SEO Optimization','Campaign Strategy','Segmentation'],
+    tools:['Content CMS','SEO Analyzer','Analytics Reporter','Social Publisher'],
+    permissions:[['Draft marketing post','allow'],['Analyze SEO keywords','allow'],['Generate campaign brief','allow'],['Publish live campaign','ask'],['Allocate ad spend','ask'],['Delete campaign history','deny']],
+    kpis:[{name:'Articles Drafted',target:'10 / mo',current:'12'},{name:'SEO Rank Score',target:'> 85',current:'89.4'},{name:'Engagement Rate',target:'> 4.5%',current:'5.2%'}]
+  },
+  {
+    id:'researcher_aris', name:'Dr. Aris Thorne', role:'Principal Market & Tech Researcher', dept:'Strategy & Intelligence', initials:'AT', icon:'brain',
+    responsibilities:['Extract key data & facts from PDF/web sources','Perform competitive landscape analyses','Synthesize research briefings with citations','Monitor regulatory & tech developments'],
+    skills:['Document Ingestion','Fact Extraction','Competitive Analysis','Executive Synthesis'],
+    tools:['Web Scraper','PDF Extractor','Vector Search','Briefing Compiler'],
+    permissions:[['Ingest research doc','allow'],['Extract entities','allow'],['Compile executive report','allow'],['Publish strategic memo','ask'],['Delete research vault','deny']],
+    kpis:[{name:'Fact Accuracy',target:'> 98%',current:'99.1%'},{name:'Briefing Turnaround',target:'< 15 min',current:'8.5 min'},{name:'Reports Published',target:'15 / mo',current:'18'}]
+  },
+  {
+    id:'admin_clara', name:'Clara Oswald', role:'Operations & Executive Administrator', dept:'Operations', initials:'CO', icon:'workflow',
+    responsibilities:['Extract structured data from invoices & receipts','Compile morning executive briefings','Orchestrate team calendar coordination','Maintain audit records & automated triggers'],
+    skills:['Data Extraction','Calendar Coordination','Morning Briefings','Workflows'],
+    tools:['ERP Connector','Invoice Parser','Calendar Scheduler','Workflow Engine'],
+    permissions:[['Parse invoice data','allow'],['Draft morning briefing','allow'],['Check calendar slots','allow'],['Schedule executive meeting','ask'],['Execute bulk workflow','ask'],['Modify payroll records','deny']],
+    kpis:[{name:'Briefing Punctuality',target:'100%',current:'100%'},{name:'Data Entry Accuracy',target:'> 99%',current:'99.7%'},{name:'Workflows Run / Day',target:'> 50',current:'64'}]
+  },
+  {
+    id:'recruiter_david', name:'David Kim', role:'Talent Acquisition Specialist', dept:'Human Resources', initials:'DK', icon:'users',
+    responsibilities:['Parse resumes & match qualifications to JDs','Score candidate competencies & skill gaps','Formulate technical screening questions','Draft candidate outreach & interview notices'],
+    skills:['Resume Parsing','Candidate Scoring','Interview Design','ATS Sync'],
+    tools:['ATS Connector','Resume Parser','Interview Formulator','Calendar Scheduler'],
+    permissions:[['Parse candidate resume','allow'],['Score candidate profile','allow'],['Draft interview questions','allow'],['Send candidate rejection','ask'],['Extend interview invite','ask'],['Modify salary ranges','deny']],
+    kpis:[{name:'Screening Speed',target:'< 30s',current:'12s'},{name:'Role Match Precision',target:'> 88%',current:'91.2%'},{name:'Candidate Engagement',target:'> 35%',current:'39.5%'}]
+  },
+  {
+    id:'finance_sophia', name:'Sophia Chen', role:'Financial Auditor & Reconciliation', dept:'Finance & Accounting', initials:'SC', icon:'activity',
+    responsibilities:['Reconcile bank statements against invoices','Detect ledger anomalies & duplicate charges','Verify tax, VAT & currency conversions','Generate cash flow audit reports'],
+    skills:['Invoice Reconciliation','Anomaly Detection','Ledger Verification','Audit Reports'],
+    tools:['Accounting Ledger','Bank Reconciler','Invoice Parser','Anomaly Detector'],
+    permissions:[['Read ledger records','allow'],['Reconcile invoice items','allow'],['Flag ledger anomaly','allow'],['Approve reimbursement','ask'],['Post ledger entry','ask'],['Initiate wire transfer','deny']],
+    kpis:[{name:'Reconciliation Accuracy',target:'100%',current:'100%'},{name:'Anomaly Detection',target:'> 95%',current:'98.3%'},{name:'Audit Cycle Time',target:'< 1 hr',current:'18 min'}]
+  },
+  {
+    id:'developer_devin', name:'Devin Hayes', role:'Autonomous Software Engineer', dept:'Engineering', initials:'DH', icon:'terminal',
+    responsibilities:['Triage repository bug reports & pinpoint causes','Generate clean, typed, documented code','Author comprehensive unit test suites','Review PRs for security & performance'],
+    skills:['Code Generation','Bug Diagnosis','Unit Testing','Code Review'],
+    tools:['Git Repo','Code Linter','Test Runner','Filesystem'],
+    permissions:[['Read codebase','allow'],['Run code linter','allow'],['Generate code module','allow'],['Write unit tests','allow'],['Create pull request','ask'],['Force push master','deny']],
+    kpis:[{name:'Test Coverage on Code',target:'> 90%',current:'96.4%'},{name:'Lint Pass Rate',target:'100%',current:'100%'},{name:'Issue Resolution Rate',target:'> 75%',current:'82.0%'}]
+  }
 ];
 
 const WORKFLOWS = [
@@ -1441,16 +1538,105 @@ function updateActivityUI(){
   }).join('');
 }
 
-function renderEmployeeDetailPage(){
+async function renderEmployeeDetailPage(){
   const e = EMPLOYEES.find(x=>x.id===state.employeeId) || EMPLOYEES[0];
   setCrumb('ALAMIA / AI EMPLOYEES / '+e.name.toUpperCase(), e.name);
   const permColor = p => p==='deny' ? 'var(--danger)' : p==='ask' ? 'var(--warning)' : 'var(--success)';
+  
+  document.getElementById('empAvatar').textContent = e.initials || 'AI';
   document.getElementById('empTitle').textContent = e.name;
   document.getElementById('empRole').textContent = e.role;
-  document.getElementById('empMemory').textContent = e.memory;
-  document.getElementById('empTools').textContent = e.tools.join(', ');
-  document.getElementById('empPermList').innerHTML = e.permissions.map(([label,level])=>`<li><span>${label}</span><span class="tag" style="color:${permColor(level)};">${level}</span></li>`).join('');
-  document.getElementById('empWfList').innerHTML = e.workflows.map(w=>`<li><span>${w}</span><span class="tag">active</span></li>`).join('');
+  document.getElementById('empDept').textContent = `${e.dept} · Persistent Persona`;
+
+  // KPIs
+  document.getElementById('empKpiGrid').innerHTML = (e.kpis || []).map(k=>`
+    <div class="card" style="padding:12px 14px;">
+      <div style="font-size:11.5px;color:var(--text-dim);margin-bottom:4px;">${k.name}</div>
+      <div style="font-size:17px;font-weight:700;color:var(--text);">${k.current} <span style="font-size:11.5px;color:var(--success);font-weight:500;">(Target: ${k.target})</span></div>
+    </div>`).join('');
+
+  // Responsibilities
+  document.getElementById('empRespList').innerHTML = (e.responsibilities || []).map(r=>`
+    <li style="font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text);">${r}</span></li>`).join('');
+
+  // Tools
+  document.getElementById('empToolsTags').innerHTML = (e.tools || []).map(t=>`
+    <span class="tag" style="background:var(--surface-3);color:var(--text);font-size:11.5px;">${t}</span>`).join('');
+
+  // Permissions
+  document.getElementById('empPermList').innerHTML = (e.permissions || []).map(([label,level])=>`
+    <li style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;">
+      <span>${label}</span>
+      <span class="tag" style="color:${permColor(level)};text-transform:uppercase;font-weight:600;">[${level==='allow'?'auto':level==='ask'?'approval gate':'denied'}]</span>
+    </li>`).join('');
+
+  // Fetch Learned Rules from Server
+  const rulesListEl = document.getElementById('empLearnedRulesList');
+  const ruleTagEl = document.getElementById('empRuleCountTag');
+  try {
+    const data = await fetch(`/api/v1/agents/employees/${e.id}/learnings`).then(r=>r.json()).catch(()=>({learnings:[]}));
+    const rules = data.learnings || [];
+    ruleTagEl.textContent = `${rules.length} rule${rules.length===1?'':'s'} learned`;
+    if(rules.length === 0){
+      rulesListEl.innerHTML = `
+        <div style="padding:16px 12px;background:var(--surface-2);border-radius:var(--radius-sm);color:var(--text-faint);font-size:12px;border:1px dashed var(--border);">
+          No explicit operator corrections learned yet. You can teach this worker new rules below.
+        </div>`;
+    } else {
+      rulesListEl.innerHTML = rules.map(r=>`
+        <div style="padding:10px 12px;margin-bottom:8px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span class="tag" style="background:var(--accent-wash);color:var(--accent);text-transform:uppercase;font-weight:600;">${r.rule_type}</span>
+            <span style="color:var(--text-faint);font-size:11px;">Applied ${r.times_applied || 0} times</span>
+          </div>
+          <div style="color:var(--text);font-weight:500;">${r.rule_text}</div>
+          ${r.trigger_pattern ? `<div style="color:var(--text-dim);font-size:11px;margin-top:4px;">Trigger context: "${r.trigger_pattern}"</div>` : ''}
+        </div>`).join('');
+    }
+  } catch(err) {
+    rulesListEl.innerHTML = `<div style="color:var(--text-dim);font-size:12px;">Episodic memory store active.</div>`;
+  }
+
+  // Bind Task Execution Sandbox
+  const runBtn = document.getElementById('empTaskRunBtn');
+  const taskInput = document.getElementById('empTaskInput');
+  const fbInput = document.getElementById('empFeedbackInput');
+  const taskOut = document.getElementById('empTaskOut');
+
+  taskInput.placeholder = `Assign task to ${e.name}... e.g. ${e.responsibilities[0]}`;
+
+  runBtn.onclick = async ()=>{
+    const task = taskInput.value.trim();
+    const feedback = fbInput.value.trim();
+    if(!task) return;
+    runBtn.textContent = 'Executing...';
+    taskOut.style.display = 'block';
+    taskOut.innerHTML = '<span style="color:var(--text-faint);">Routing through employee persona & learned rules...</span>';
+    try {
+      const res = await fetch(`/api/v1/agents/employees/${e.id}/task`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({task: task, user_feedback: feedback || null})
+      }).then(r=>r.json());
+      taskOut.innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:6px;">
+          <b>Handled by: ${res.employee_name} (${res.role})</b>
+          <span style="color:var(--accent);font-family:var(--font-mono);">${res.latency_ms}ms · local</span>
+        </div>
+        <div style="white-space:pre-wrap;color:var(--text);line-height:1.5;">${res.result}</div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-dim);">
+          Learned Rules Applied: <b>${res.learned_rules_applied || 0}</b>
+        </div>`;
+      if(feedback){
+        renderEmployeeDetailPage();
+        fbInput.value = '';
+      }
+    } catch(err) {
+      taskOut.innerHTML = `<span style="color:var(--danger);">Error: ${err.message}</span>`;
+    } finally {
+      runBtn.textContent = 'Execute Employee Task';
+    }
+  };
 }
 
 /* ============================= SETUP EVENT LISTENERS ============================= */
@@ -1494,13 +1680,20 @@ function initStaticViews(){
   // Employees List
   document.getElementById('employeesGrid').innerHTML = `
     ${EMPLOYEES.map(e=>`
-      <div class="emp-card" data-emp="${e.id}">
-        <div class="emp-icon">${icon(e.icon)}</div>
-        <div class="emp-name">${e.name}</div>
-        <div class="emp-role">${e.role}</div>
-        <div class="status loaded"><span class="d"></span>Ready</div>
+      <div class="emp-card" data-emp="${e.id}" style="cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+          <div style="width:38px;height:38px;border-radius:8px;background:var(--accent-wash);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;border:1px solid var(--accent);">${e.initials||'AI'}</div>
+          <div>
+            <div class="emp-name" style="font-size:14px;font-weight:600;">${e.name}</div>
+            <div style="font-size:11.5px;color:var(--text-dim);">${e.dept}</div>
+          </div>
+        </div>
+        <div class="emp-role" style="font-size:12px;color:var(--text);margin-bottom:12px;font-weight:500;">${e.role}</div>
+        <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
+          <div class="status loaded"><span class="d"></span>Active</div>
+          <span style="font-size:11px;color:var(--text-dim);">${e.skills[0]} · ${e.skills[1]}</span>
+        </div>
       </div>`).join('')}
-    <div class="emp-card" style="display:flex;align-items:center;justify-content:center;color:var(--text-faint);border-style:dashed;box-shadow:none;">+ Install an AI Employee</div>
   `;
   document.querySelectorAll('[data-emp]').forEach(el=>el.onclick=()=>navigate('employee-detail', el.dataset.emp));
 
