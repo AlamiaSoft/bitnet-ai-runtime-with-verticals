@@ -32,7 +32,7 @@ class ModelCapabilityRegistry:
             )
 
             status = self.lifecycle_manager.get_status(manifest.model_id)
-            is_installed = (status in (ModelStatus.INSTALLED, ModelStatus.LOADED)) or (manifest.provider_backend in ("bitnet", "mock"))
+            is_installed = (status in (ModelStatus.INSTALLED, ModelStatus.LOADED)) or (manifest.provider_backend == "bitnet")
             is_loaded = (status == ModelStatus.LOADED)
 
             profile = ModelCapabilityProfile(

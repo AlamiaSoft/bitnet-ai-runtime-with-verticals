@@ -59,12 +59,10 @@ class ModelLifecycleManager:
     def _sync_installed_states(self) -> None:
         for manifest in self.garden.list_all():
             model_path = self.get_model_file_path(manifest.model_id)
-            if manifest.provider_backend == "cloud":
+            if model_path.exists() and model_path.stat().st_size > 0:
+                self._model_states[manifest.model_id] = ModelStatus.INSTALLED
+            elif manifest.provider_backend == "cloud":
                 self._model_states[manifest.model_id] = ModelStatus.AVAILABLE
-            elif manifest.provider_backend == "mock":
-                self._model_states[manifest.model_id] = ModelStatus.INSTALLED
-            elif model_path.exists() and model_path.stat().st_size > 0:
-                self._model_states[manifest.model_id] = ModelStatus.INSTALLED
             else:
                 self._model_states[manifest.model_id] = ModelStatus.AVAILABLE
 

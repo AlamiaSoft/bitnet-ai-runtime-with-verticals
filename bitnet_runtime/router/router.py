@@ -146,14 +146,14 @@ class AIRouter:
                 trace.attempts.append(attempt_info)
 
                 loaded_inst = self.execution_registry._loaded_instances.get(candidate.model_id) if hasattr(self, "execution_registry") and self.execution_registry else None
-                if candidate.provider not in self._engine_cache and manifest.provider_backend != "bitnet" and loaded_inst and loaded_inst.backend_type.value == "bitnet-sidecar":
+                if candidate.provider not in self._engine_cache and manifest.provider_backend != "bitnet" and loaded_inst and str(loaded_inst.backend_type.value).replace("-", "_") == "bitnet_sidecar":
                     trace.fallback_invoked = True
                     trace.executed_model_id = "bitnet_b1_58_2b"
                     if trace.decision:
                         trace.decision.rationale = f"Executed on BitNet b1.58 2B (failover: {candidate.name} is not installed locally)"
                 else:
                     trace.executed_model_id = candidate.model_id
-                    trace.fallback_invoked = is_fallback
+                    trace.fallback_invoked = is_fallback or (candidate.model_id != decision.primary_model.model_id)
 
                 trace.latency_ms = round((time.time() - start_time) * 1000.0, 2)
                 trace.token_usage = resp.usage
