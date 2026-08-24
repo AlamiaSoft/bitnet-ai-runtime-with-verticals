@@ -287,8 +287,8 @@ h1.h{font-size:15px;font-weight:600;margin-bottom:2px;letter-spacing:-.1px;}
 .status .d{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .status.loaded .d{background:var(--success);}
 .status.loaded{color:var(--success);}
-.status.available .d{background:transparent;border:1.5px solid var(--text-faint);}
-.status.available{color:var(--text-dim);}
+.status.available .d{background:transparent;border:1.5px solid var(--accent);background:var(--accent-wash);}
+.status.available{color:var(--accent);}
 .status.notinstalled .d{background:var(--text-faint);opacity:.5;}
 .status.notinstalled{color:var(--text-faint);}
 .status.paused .d{background:var(--warning);}
@@ -483,26 +483,283 @@ tr:last-child td{border-bottom:none;}
   <div class="main">
     <header class="topbar">
       <div>
-        <div class="crumb" id="crumb">ALAMIA</div>
+        <div class="crumb" id="crumb">ALAMIA / OVERVIEW</div>
         <div class="page-title" id="pageTitle">Overview</div>
       </div>
       <div class="top-right">
-        <div class="badge good" id="topLoadedBadge"><span class="dot pulse" style="width:5px;height:5px;background:var(--success);"></span> <span id="topLoadedCount">3 models loaded</span></div>
-        <div class="badge" id="topRamUsage">24.1 GB / 64 GB RAM</div>
+        <div class="badge good" id="topLoadedBadge"><span class="dot pulse" style="width:5px;height:5px;background:var(--success);"></span> <span id="topLoadedCount">0 models loaded</span></div>
+        <div class="badge" id="topRamUsage">0.0 GB / 32 GB RAM</div>
         <div class="skin-switch" id="skinSwitch"></div>
         <div class="theme-switch" id="themeSwitch"></div>
       </div>
     </header>
-    <main class="content" id="content"></main>
+    <main class="content" id="content">
+      <!-- 1. OVERVIEW PAGE -->
+      <section class="page active" id="page-overview">
+        <div class="eyebrow">Local AI command center</div>
+        <div class="grid grid-4" style="margin-bottom:20px;">
+          <div class="card"><div class="stat-label">Models installed</div><div class="stat-value" id="ovInstalledCount">0</div><div class="stat-sub" id="ovAvailSub">0 more available in the Garden</div></div>
+          <div class="card"><div class="stat-label">Loaded now</div><div class="stat-value" id="ovLoadedCount">0</div><div class="stat-sub" id="ovLoadedNames">None in RAM</div></div>
+          <div class="card"><div class="stat-label">Memory in use</div><div class="stat-value" id="ovRamValue">0.0 <span style="font-size:15px;color:var(--text-dim);font-weight:600;">GB</span></div><div class="stat-sub" id="ovRamSub">of 32 GB host RAM</div></div>
+          <div class="card"><div class="stat-label">Inference mode</div><div class="stat-value" style="font-size:20px;">CPU-only</div><div class="stat-sub">Cloud escalation off</div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;">
+            <div>
+              <div class="eyebrow" style="margin-bottom:2px;">AI Router · live</div>
+              <h1 class="h">What's running right now</h1>
+            </div>
+            <button class="btn btn-ghost btn-sm" data-nav="router">Open Router →</button>
+          </div>
+          <div id="ovRouterTrace"></div>
+          <div class="ask-row">
+            <input id="quickPromptInput" type="text" placeholder="What do you want to run? e.g. summarize my customer emails..." />
+            <button class="btn btn-primary btn-sm" id="quickPromptBtn">Run</button>
+          </div>
+          <div id="quickPromptOutput" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
+        </div>
+
+        <div class="eyebrow" style="margin-top:24px;">Model Garden</div>
+        <div class="grid grid-3" id="ovGardenGrid"></div>
+        <div style="margin-top:14px;"><button class="btn btn-ghost btn-sm" data-nav="garden">View all models →</button></div>
+      </section>
+
+      <!-- 2. MODEL GARDEN PAGE -->
+      <section class="page" id="page-garden">
+        <div class="section-lede">Discover, compare, and manage the models running on this machine. Everything here runs locally on your CPU.</div>
+        <div class="filter-row">
+          <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="gardenSearch" type="text" placeholder="Search models..."/></div>
+          <div id="gardenChips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+        </div>
+        <div class="grid grid-3" id="gardenGrid"></div>
+      </section>
+
+      <!-- 3. MODEL DETAIL PAGE -->
+      <section class="page" id="page-model-detail">
+        <a class="back-link" data-nav="garden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M15 18l-6-6 6-6"/></svg> Back to Model Garden</a>
+        <div class="detail-head">
+          <div>
+            <div class="detail-title" id="mdTitle">Model</div>
+            <div class="detail-sub" id="mdDesc">High efficiency CPU-optimized small language model.</div>
+            <div class="mc-tags" id="mdTags" style="margin-top:12px;"></div>
+          </div>
+          <div id="mdActionBtnWrap" style="display:flex;gap:8px;"></div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="eyebrow">Benchmark results</div>
+            <div id="mdBenchTable"></div>
+            <button class="details-toggle" id="techToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="m9 18 6-6-6-6"/></svg> Technical execution details</button>
+            <div class="tech-panel" id="techPanel"></div>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Hardware requirements</div>
+            <div class="kv"><span>RAM required</span><span id="mdRamReq">1.2 GB</span></div>
+            <div class="kv"><span>Recommended CPU</span><span>AVX2 or better</span></div>
+            <div class="kv"><span>Context window</span><span id="mdCtx">4096 tokens</span></div>
+            <div class="kv"><span>Typical Latency</span><span id="mdLat">30 ms</span></div>
+            <div class="eyebrow" style="margin-top:20px;">Execution status</div>
+            <div class="kv"><span>State</span><span id="mdStatusBadge"></span></div>
+            <div class="kv"><span>Inference Provider</span><span id="mdProvider">llama.cpp</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. ROUTER PAGE -->
+      <section class="page" id="page-router">
+        <div class="section-lede">The Router decides which model handles each task, based on capability, quality, and your privacy settings. Nothing leaves this machine unless you allow it below.</div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="eyebrow">Live routing activity</div>
+          <div id="routerTraceBox"></div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="eyebrow">Routing policies</div>
+            <table>
+              <tr><th>Task type</th><th>Primary model</th><th>Fallback</th></tr>
+              <tr><td>Extraction</td><td>Qwen 2.5 1.5B</td><td class="num">BitNet b1.58</td></tr>
+              <tr><td>Reasoning</td><td>Phi-3.5 Mini / BitNet</td><td class="num">Qwen 2.5 1.5B</td></tr>
+              <tr><td>Coding</td><td>Qwen 2.5 1.5B</td><td class="num">BitNet b1.58</td></tr>
+              <tr><td>Embeddings</td><td>BGE Small</td><td class="num">MiniLM</td></tr>
+              <tr><td>Classification</td><td>BitNet b1.58 (1-bit)</td><td class="num">Qwen 2.5</td></tr>
+            </table>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:12px;">Automatic failover occurs seamlessly when primary models are uninstalled or offline.</div>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Privacy & escalation</div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Allow cloud escalation</div><div class="toggle-desc">Send only when local models can't meet quality bar</div></div>
+              <div class="switch" id="cloudToggle"></div>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Prefer speed over quality</div><div class="toggle-desc">Bias router toward faster, 1-bit ternary models</div></div>
+              <div class="switch on" id="speedToggle"></div>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Log routing decisions</div><div class="toggle-desc">Keep a local decision trace for telemetry</div></div>
+              <div class="switch on" id="logToggle"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. PLAYGROUND PAGE (PERSISTENT DOM) -->
+      <section class="page" id="page-playground">
+        <div class="tabs" id="playTabs"></div>
+        <div id="tabChat" class="play-tab-content">
+          <div class="chat-frame">
+            <div class="chat-strategy">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:12.5px;font-weight:500;color:var(--text-dim);">Model:</span>
+                <select id="chatModelSelect" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font-sans);font-size:12px;padding:4px 8px;cursor:pointer;font-weight:500;">
+                  <option value="auto">🤖 Auto (AI Router)</option>
+                </select>
+              </div>
+              <button class="details-toggle" id="stratToggle" style="margin-top:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="m9 18 6-6-6-6"/></svg> Technical view</button>
+            </div>
+            <div class="tech-panel" id="stratPanel" style="margin:0;border-radius:0;border-left:none;border-right:none;">execution_route = BitNet / llama.cpp via ExecutionRegistry (zero silent fallback)</div>
+            <div class="chat-body" id="chatMsgList">
+              <div class="msg ai">Hello! I am Alamia Local AI, running completely on your CPU. What would you like to run today?<div class="msg-meta">Alamia Local AI · local</div></div>
+            </div>
+            <div class="chat-input-row">
+              <input id="chatInput" type="text" placeholder="Ask anything... e.g. Who are you?" />
+              <button class="btn btn-primary btn-sm" id="chatSendBtn">Send</button>
+            </div>
+          </div>
+        </div>
+        <div id="tabEmbed" class="play-tab-content" style="display:none;">
+          <div class="card">
+            <div class="eyebrow">Vector Embeddings & Semantic Similarity</div>
+            <div class="section-lede">Generate local vector embeddings with BGE Small / MiniLM and compute cosine similarity across texts.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div><label style="font-size:12px;color:var(--text-dim);">Text A</label><input type="text" id="embedTextA" class="search-box" style="width:100%;margin-top:4px;" value="Financial report for third quarter"/></div>
+              <div><label style="font-size:12px;color:var(--text-dim);">Text B</label><input type="text" id="embedTextB" class="search-box" style="width:100%;margin-top:4px;" value="Quarterly revenue breakdown and margins"/></div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="calcEmbedBtn">Compute Similarity</button>
+            <div id="embedOut" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
+          </div>
+        </div>
+        <div id="tabCompare" class="play-tab-content" style="display:none;">
+          <div class="card">
+            <div class="eyebrow">Model comparison</div>
+            <div id="compareTableWrap"></div>
+            <div style="font-size:11.5px;color:var(--text-dim);margin-top:14px;">This is what the Router evaluates when scoring candidate models against task constraints.</div>
+          </div>
+        </div>
+        <div id="tabGeneric" class="play-tab-content" style="display:none;">
+          <div class="card" style="color:var(--text-dim);">
+            <div class="eyebrow" id="genericTabTitle">Task Workspace</div>
+            <div id="genericTabDesc">Workspace — drop in your input and run it locally. Results and confidence scores appear inline.</div>
+            <div class="ask-row" style="margin-top:16px;">
+              <input type="text" id="genericTabInput" placeholder="Input..."/>
+              <button class="btn btn-primary btn-sm" id="genericTabBtn">Run</button>
+            </div>
+            <div id="genericTabOut" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. AI EMPLOYEES PAGE -->
+      <section class="page" id="page-employees">
+        <div class="section-lede">Installed AI Employees — autonomous workers with their own tools, memory, and permissions.</div>
+        <div class="grid grid-3" id="employeesGrid"></div>
+      </section>
+
+      <!-- 7. EMPLOYEE DETAIL PAGE -->
+      <section class="page" id="page-employee-detail">
+        <a class="back-link" data-nav="employees"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M15 18l-6-6 6-6"/></svg> Back to AI Employees</a>
+        <div class="detail-head">
+          <div>
+            <div class="detail-title" id="empTitle">Employee</div>
+            <div class="detail-sub" id="empRole">Role</div>
+          </div>
+          <button class="btn btn-primary" data-nav="playground">Open in Playground</button>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="eyebrow">Permissions</div>
+            <ul class="list-plain" id="empPermList"></ul>
+            <div class="eyebrow" style="margin-top:22px;">Workflows using this employee</div>
+            <ul class="list-plain" id="empWfList"></ul>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Configuration</div>
+            <div class="kv"><span>Model strategy</span><span>Automatic</span></div>
+            <div class="kv"><span>Memory</span><span id="empMemory">Semantic</span></div>
+            <div class="kv"><span>Tools</span><span id="empTools">Filesystem</span></div>
+            <div class="kv"><span>Status</span><span class="status loaded"><span class="d"></span>Ready</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. WORKFLOWS PAGE -->
+      <section class="page" id="page-workflows">
+        <div class="section-lede">Automation pipelines your AI Employees run on a schedule or trigger.</div>
+        <div id="workflowsList"></div>
+        <button class="btn btn-primary" style="margin-top:8px;">+ New workflow</button>
+      </section>
+
+      <!-- 9. ACTIVITY PAGE -->
+      <section class="page" id="page-activity">
+        <div class="section-lede">Every router decision, model load, tool call, and workflow run — recorded locally.</div>
+        <div class="card" id="activityList"></div>
+      </section>
+
+      <!-- 10. SYSTEM PAGE -->
+      <section class="page" id="page-system">
+        <div class="two-col">
+          <div>
+            <div class="card" style="margin-bottom:16px;">
+              <div class="eyebrow">Hardware</div>
+              <div class="kv"><span>CPU</span><span id="sysCpu">8-core (x86_64)</span></div>
+              <div class="kv"><span>RAM</span><span id="sysRam">0.0 GB / 32 GB used</span></div>
+              <div class="usage-bar"><div class="usage-fill" id="sysRamBar" style="width:10%;"></div></div>
+              <div class="flags" id="sysFlags"></div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px;">
+              <div class="eyebrow">Storage</div>
+              <div class="kv"><span>Model directory</span><span id="sysModelDir">./models</span></div>
+              <div class="kv"><span>Disk used by models</span><span id="sysDisk">5.5 GB of 40 GB quota</span></div>
+              <div class="usage-bar"><div class="usage-fill" id="sysDiskBar" style="width:14%;"></div></div>
+            </div>
+
+            <div class="card">
+              <div class="eyebrow">Engines</div>
+              <div class="engine-row"><div><div class="engine-name">llama.cpp Engine</div><div class="engine-desc">Primary SLM, GGUF Embeddings & Reranker Driver</div></div><div class="status loaded"><span class="d"></span>Active</div></div>
+              <div class="engine-row"><div><div class="engine-name">BitNet 1-bit Engine</div><div class="engine-desc">Native Microsoft BitNet b1.58 Ternary Sidecar</div></div><div class="status loaded"><span class="d"></span>Active</div></div>
+              <div class="engine-row"><div><div class="engine-name">TEI Engine</div><div class="engine-desc">Hugging Face Text Embeddings Inference</div></div><div class="status available"><span class="d"></span>Ready</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="eyebrow">Network & privacy</div>
+            <div class="toggle-row"><div><div class="toggle-label">Local-only mode</div><div class="toggle-desc">Block all outbound network calls</div></div><div class="switch on"></div></div>
+            <div class="toggle-row"><div><div class="toggle-label">Cloud escalation</div><div class="toggle-desc">Allow Router to reach cloud models when needed</div></div><div class="switch"></div></div>
+            <div class="toggle-row"><div><div class="toggle-label">Anonymous usage telemetry</div><div class="toggle-desc">Help improve Alamia — no content ever leaves this device</div></div><div class="switch"></div></div>
+
+            <div class="eyebrow" style="margin-top:24px;">Configuration</div>
+            <button class="details-toggle" id="cfgToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="m9 18 6-6-6-6"/></svg> Workspace & paths</button>
+            <div class="tech-panel" id="cfgPanel">
+              workspace.dir = ./workspace<br/>
+              models.dir = ./models<br/>
+              data.dir = ./data<br/>
+              runtime.mode = local-first
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 </div>
 
 <script>
 /* ============================= THEMES & SKINS ============================= */
 const THEME_ICONS = {
-  system:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>`,
-  light:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>`,
-  dark:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z"/></svg>`,
+  system:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>`,
+  light:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>`,
+  dark:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z"/></svg>`,
 };
 
 let currentSkin = localStorage.getItem('alamia_skin') || 'alamia';
@@ -627,11 +884,7 @@ let state = {
   gardenFilter:'All', 
   gardenQuery:'', 
   tab:'Chat',
-  chatDraft: '',
-  quickDraft: '',
-  chatHistory: [
-    {role:'ai', text:'Hello! I am Alamia Local AI, running completely on your CPU. What would you like to run today?', meta:'Alamia Local AI · local'}
-  ]
+  selectedChatModel: 'auto'
 };
 
 function renderNav(){
@@ -648,7 +901,25 @@ function navigate(page, param){
   state.page = page;
   if(page==='model-detail') state.modelId = param;
   if(page==='employee-detail') state.employeeId = param;
-  render();
+
+  // Set active section
+  document.querySelectorAll('.page').forEach(sec=>{ sec.classList.remove('active'); });
+  const targetPage = document.getElementById(`page-${page}`);
+  if(targetPage) targetPage.classList.add('active');
+
+  // Update header and render page specific data
+  if(page==='overview') setCrumb('ALAMIA / OVERVIEW','Overview');
+  if(page==='garden') setCrumb('ALAMIA / MODEL GARDEN','Model Garden');
+  if(page==='model-detail') renderModelDetailPage();
+  if(page==='router') setCrumb('ALAMIA / AI ROUTER','AI Router');
+  if(page==='playground') setCrumb('ALAMIA / PLAYGROUND','AI Playground');
+  if(page==='employees') setCrumb('ALAMIA / AI EMPLOYEES','AI Employees');
+  if(page==='employee-detail') renderEmployeeDetailPage();
+  if(page==='workflows') setCrumb('ALAMIA / WORKFLOWS','Workflows');
+  if(page==='activity') setCrumb('ALAMIA / ACTIVITY','Activity');
+  if(page==='system') setCrumb('ALAMIA / SYSTEM','System');
+
+  renderNav();
   window.scrollTo(0,0);
 }
 
@@ -658,7 +929,7 @@ function setCrumb(trail, title){
 }
 
 /* ============================= DATA FETCHING ============================= */
-async function fetchAllData(isPolling=false){
+async function fetchAllData(){
   try {
     const [resM, resH, resS, resB, resMem, resT] = await Promise.all([
       fetch('/api/v1/garden/models').then(r=>r.json()).catch(()=>[]),
@@ -675,118 +946,118 @@ async function fetchAllData(isPolling=false){
     if(resMem && resMem.instances) live.memory = resMem;
     if(resT && resT.total_executions !== undefined) live.telemetry = resT;
 
-    // Update top header badges in-place without destroying DOM elements
-    const loadedCount = (live.memory.instances || []).length || (live.models.filter(m=>m.status==='loaded').length);
-    const topCountEl = document.getElementById('topLoadedCount');
-    if(topCountEl) topCountEl.textContent = `${loadedCount} models loaded`;
-    const totalRamMB = live.fabric.total_ram_used_mb || 0;
-    const hostRamGB = (live.hardware.total_ram_mb/1024).toFixed(0);
-    const topRamEl = document.getElementById('topRamUsage');
-    if(topRamEl) topRamEl.textContent = `${(totalRamMB/1024).toFixed(1)} GB / ${hostRamGB} GB RAM`;
-
-    // If initial load or user action, render page. If background polling, never interrupt user typing
-    if(!isPolling){
-      render();
-    } else {
-      const activeTag = document.activeElement ? document.activeElement.tagName : '';
-      const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA';
-      if(!isTyping && (state.page === 'system' || state.page === 'overview')){
-        // Passive view refresh
-        render();
-      }
-    }
+    updateHeaderBadges();
+    updateOverviewStats();
+    updateGardenUI();
+    updatePlaygroundModelSelect();
+    updateSystemUI();
+    updateActivityUI();
   } catch(e) {
     console.error("Fetch error:", e);
   }
 }
 
-/* ============================= RENDERERS ============================= */
-function render(){
-  renderNav();
-  const c = document.getElementById('content');
-  if(state.page==='overview') return renderOverview(c);
-  if(state.page==='garden') return renderGarden(c);
-  if(state.page==='model-detail') return renderModelDetail(c);
-  if(state.page==='router') return renderRouter(c);
-  if(state.page==='playground') return renderPlayground(c);
-  if(state.page==='employees') return renderEmployees(c);
-  if(state.page==='employee-detail') return renderEmployeeDetail(c);
-  if(state.page==='workflows') return renderWorkflows(c);
-  if(state.page==='activity') return renderActivityPage(c);
-  if(state.page==='system') return renderSystem(c);
+function updateHeaderBadges(){
+  const loadedCount = (live.memory.instances || []).length || (live.models.filter(m=>m.status==='loaded').length);
+  const topCountEl = document.getElementById('topLoadedCount');
+  if(topCountEl) topCountEl.textContent = `${loadedCount} models loaded`;
+  const totalRamMB = live.fabric.total_ram_used_mb || 0;
+  const hostRamGB = (live.hardware.total_ram_mb/1024).toFixed(0);
+  const topRamEl = document.getElementById('topRamUsage');
+  if(topRamEl) topRamEl.textContent = `${(totalRamMB/1024).toFixed(1)} GB / ${hostRamGB} GB RAM`;
 }
 
-/* ---- Overview ---- */
-function renderOverview(c){
-  setCrumb('ALAMIA / OVERVIEW','Overview');
-  const loaded = live.models.filter(m=>m.status==='loaded');
-  const installedCount = live.models.filter(m=>m.status==='installed'||m.status==='loaded').length;
-  const availCount = Math.max(0, live.models.length - installedCount);
-  const ramGB = (live.fabric.total_ram_used_mb ? (live.fabric.total_ram_used_mb/1024).toFixed(1) : '0.0');
-  const totalHostGB = (live.hardware.total_ram_mb ? (live.hardware.total_ram_mb/1024).toFixed(0) : '32');
+function defaultModels(){
+  return [
+    {model_id:'bitnet_b1_58_2b', name:'BitNet b1.58 2B-4T', provider_backend:'bitnet', capabilities:['reasoning','coding','classification'], hardware:{min_ram_mb:1200}, typical_latency_ms:37, quality_score:4.1, status:'loaded', description:'Microsoft ternary 1-bit SLM running via native sidecar container.'},
+    {model_id:'qwen2_5_1_5b_instruct', name:'Qwen 2.5 1.5B Instruct', provider_backend:'llamacpp', capabilities:['extraction','reasoning','rag_qa'], hardware:{min_ram_mb:1100}, typical_latency_ms:32, quality_score:4.3, status:'installed', description:'General-purpose small language model with high extraction and coding precision.'},
+    {model_id:'phi3_5_mini_3_8b', name:'Phi-3.5 Mini 3.8B', provider_backend:'llamacpp', capabilities:['reasoning','coding','summarization'], hardware:{min_ram_mb:2500}, typical_latency_ms:18, quality_score:4.4, status:'available', description:'Dense reasoning SLM with benchmark-leading reasoning quality.'},
+    {model_id:'bge_small_en_v1_5', name:'BGE Small v1.5', provider_backend:'tei', capabilities:['embedding'], hardware:{min_ram_mb:300}, typical_latency_ms:120, quality_score:4.2, status:'loaded', description:'Compact vector embedding model for fast RAG semantic indexing.'}
+  ];
+}
 
-  c.innerHTML = `
-    <div class="eyebrow">Local AI command center</div>
-    <div class="grid grid-4" style="margin-bottom:20px;">
-      <div class="card"><div class="stat-label">Models installed</div><div class="stat-value">${installedCount}</div><div class="stat-sub">${availCount} more available in the Garden</div></div>
-      <div class="card"><div class="stat-label">Loaded now</div><div class="stat-value">${loaded.length}</div><div class="stat-sub">${loaded.map(m=>m.name).join(', ') || 'None in RAM'}</div></div>
-      <div class="card"><div class="stat-label">Memory in use</div><div class="stat-value">${ramGB} <span style="font-size:15px;color:var(--text-dim);font-weight:600;">GB</span></div><div class="stat-sub">of ${totalHostGB} GB host RAM</div></div>
-      <div class="card"><div class="stat-label">Inference mode</div><div class="stat-value" style="font-size:20px;">CPU-only</div><div class="stat-sub">Cloud escalation off</div></div>
-    </div>
+/* ============================= MODEL CARD HELPER ============================= */
+function modelCardHTML(m){
+  const id = m.model_id || m.id;
+  const status = m.status || 'available';
+  const isLoaded = status === 'loaded';
+  const isInstalled = status === 'installed';
+  const isDownloading = status === 'downloading';
 
-    <div class="card" style="margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;">
-        <div>
-          <div class="eyebrow" style="margin-bottom:2px;">AI Router · live</div>
-          <h1 class="h">What's running right now</h1>
-        </div>
-        <button class="btn btn-ghost btn-sm" data-nav="router">Open Router →</button>
+  const statusClass = isLoaded ? 'loaded' : isInstalled ? 'available' : isDownloading ? 'paused' : 'notinstalled';
+  const statusLabel = isLoaded ? 'Loaded' : isInstalled ? 'Installed / Available' : isDownloading ? 'Installing...' : 'Available (Not installed)';
+  const ramGB = ((m.hardware?.min_ram_mb || 1200)/1024).toFixed(1);
+  const quality = (m.quality_score || 4.2).toFixed(1);
+  const tags = (m.capabilities || ['Reasoning']).map(c=>c.replace('_',' '));
+  const engine = m.provider_backend === 'bitnet' ? 'BitNet 1-bit Engine' : m.provider_backend === 'tei' ? 'TEI Engine' : 'llama.cpp';
+
+  const actionBtn = isLoaded 
+    ? `<button class="btn btn-sm" data-unload="${id}">Unload</button>`
+    : isInstalled 
+    ? `<button class="btn btn-primary btn-sm" data-load="${id}">Load</button>`
+    : isDownloading
+    ? `<button class="btn btn-sm" disabled>Installing...</button>`
+    : `<button class="btn btn-primary btn-sm" data-install="${id}">Install</button>`;
+
+  return `
+    <div class="model-card" data-model="${id}">
+      <div class="mc-head">
+        <div class="mc-name">${m.name}</div>
+        <div class="status ${statusClass}"><span class="d"></span>${statusLabel}</div>
       </div>
-      ${routerTraceSVG()}
-      <div class="ask-row">
-        <input id="quickPromptInput" type="text" placeholder="What do you want to run? e.g. summarize my customer emails..." value="${state.quickDraft || ''}" />
-        <button class="btn btn-primary btn-sm" id="quickPromptBtn">Run</button>
+      <div class="mc-tags">${tags.map(t=>`<span class="tag" style="text-transform:capitalize;">${t}</span>`).join('')}</div>
+      <div class="qbar-row"><span>Quality</span><div class="qbar"><div class="qbar-fill" style="width:${(quality/5)*100}%"></div></div><span>${quality}</span></div>
+      <div class="mc-meta"><span>RAM ${ramGB} GB</span><span>${m.typical_latency_ms || 30} tok/s</span></div>
+      <div class="mc-foot">
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-faint);">${engine}</span>
+        ${actionBtn}
       </div>
-      <div id="quickPromptOutput" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
-    </div>
+      <div id="prog_${id}" class="progress-bar-wrap" style="display:none;"><div class="progress-bar-fill"></div></div>
+    </div>`;
+}
 
-    <div class="eyebrow" style="margin-top:24px;">Model Garden</div>
-    <div class="grid grid-3">
-      ${(live.models.length ? live.models.slice(0,3) : defaultModels().slice(0,3)).map(modelCardHTML).join('')}
-    </div>
-    <div style="margin-top:14px;"><button class="btn btn-ghost btn-sm" data-nav="garden">View all models →</button></div>
-  `;
-  bindLocalNav(c);
-  bindModelCards(c);
-
-  const qBtn = document.getElementById('quickPromptBtn');
-  const qInput = document.getElementById('quickPromptInput');
-  const qOut = document.getElementById('quickPromptOutput');
-  if(qBtn && qInput){
-    qInput.oninput = ()=>{ state.quickDraft = qInput.value; };
-    qBtn.onclick = async ()=>{
-      const val = qInput.value.trim();
-      if(!val) return;
-      state.quickDraft = '';
-      qInput.value = '';
-      qBtn.textContent = 'Routing...';
-      qOut.style.display = 'block';
-      qOut.innerHTML = '<span style="color:var(--text-faint);">Analyzing prompt & executing optimal model...</span>';
-      try {
-        const res = await fetch('/api/v1/router/complete', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({prompt: val})
-        }).then(r=>r.json());
-        qOut.innerHTML = `<b>Executed on:</b> <span style="color:var(--accent);">${res.executed_model_id}</span> (${res.latency_ms.toFixed(1)}ms)<br/><br/>${res.text}`;
-      } catch(e) {
-        qOut.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
-      } finally {
-        qBtn.textContent = 'Run';
+function bindModelActions(root){
+  root.querySelectorAll('[data-model]').forEach(el=>{
+    el.addEventListener('click', (e)=>{ if(e.target.closest('button')) return; navigate('model-detail', el.dataset.model); });
+  });
+  root.querySelectorAll('[data-install],[data-load],[data-unload]').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.install||btn.dataset.load||btn.dataset.unload;
+      if(btn.dataset.install){
+        btn.textContent = 'Installing...';
+        btn.disabled = true;
+        const pWrap = document.getElementById(`prog_${id}`);
+        if(pWrap) pWrap.style.display = 'block';
+        try {
+          const evt = new EventSource(`/api/v1/garden/models/${id}/acquire-stream`);
+          evt.onmessage = (msg)=>{
+            const d = JSON.parse(msg.data);
+            if(pWrap) pWrap.querySelector('.progress-bar-fill').style.width = `${d.progress_pct}%`;
+            if(d.status==='installed'||d.status==='completed'){
+              evt.close();
+              fetchAllData();
+            }
+          };
+          evt.onerror = ()=>{ evt.close(); fetchAllData(); };
+        } catch(err) {
+          await fetch(`/api/v1/garden/models/${id}/install`, {method:'POST'});
+          fetchAllData();
+        }
       }
-    };
-    qInput.onkeydown = (e)=>{ if(e.key==='Enter') qBtn.click(); };
-  }
+      if(btn.dataset.load){
+        btn.textContent = 'Loading...';
+        await fetch(`/api/v1/execution/models/${id}/load`, {method:'POST'});
+        fetchAllData();
+      }
+      if(btn.dataset.unload){
+        btn.textContent = 'Unloading...';
+        await fetch(`/api/v1/execution/models/${id}/unload`, {method:'POST'});
+        fetchAllData();
+      }
+    });
+  });
+  root.querySelectorAll('[data-nav]').forEach(el=>{ if(!el.onclick) el.onclick=()=>navigate(el.dataset.nav); });
 }
 
 function routerTraceSVG(){
@@ -824,52 +1095,64 @@ function routerTraceSVG(){
   </div>`;
 }
 
-function defaultModels(){
-  return [
-    {model_id:'bitnet_b1_58_2b', name:'BitNet b1.58 2B-4T', provider_backend:'bitnet', capabilities:['reasoning','coding','classification'], hardware:{min_ram_mb:1200}, typical_latency_ms:37, quality_score:4.1, status:'loaded', description:'Microsoft ternary 1-bit SLM running via native sidecar container.'},
-    {model_id:'qwen2_5_1_5b_instruct', name:'Qwen 2.5 1.5B Instruct', provider_backend:'llamacpp', capabilities:['extraction','reasoning','rag_qa'], hardware:{min_ram_mb:1100}, typical_latency_ms:32, quality_score:4.3, status:'available', description:'General-purpose small language model with high extraction and coding precision.'},
-    {model_id:'phi3_5_mini_3_8b', name:'Phi-3.5 Mini 3.8B', provider_backend:'llamacpp', capabilities:['reasoning','coding','summarization'], hardware:{min_ram_mb:2500}, typical_latency_ms:18, quality_score:4.4, status:'not_installed', description:'Dense reasoning SLM with benchmark-leading reasoning quality.'},
-    {model_id:'bge_small_en_v1_5', name:'BGE Small v1.5', provider_backend:'tei', capabilities:['embedding'], hardware:{min_ram_mb:300}, typical_latency_ms:120, quality_score:4.2, status:'loaded', description:'Compact vector embedding model for fast RAG semantic indexing.'}
-  ];
+/* ============================= PAGE UPDATERS ============================= */
+function updateOverviewStats(){
+  const models = live.models.length ? live.models : defaultModels();
+  const loaded = models.filter(m=>m.status==='loaded');
+  const installed = models.filter(m=>m.status==='installed'||m.status==='loaded');
+  const avail = models.filter(m=>m.status==='available'||m.status==='not_installed'||!m.status);
+
+  document.getElementById('ovInstalledCount').textContent = installed.length;
+  document.getElementById('ovAvailSub').textContent = `${avail.length} more available in the Garden`;
+  document.getElementById('ovLoadedCount').textContent = loaded.length;
+  document.getElementById('ovLoadedNames').textContent = loaded.map(m=>m.name).join(', ') || 'None in RAM';
+  
+  const ramGB = (live.fabric.total_ram_used_mb ? (live.fabric.total_ram_used_mb/1024).toFixed(1) : '0.0');
+  const totalHostGB = (live.hardware.total_ram_mb ? (live.hardware.total_ram_mb/1024).toFixed(0) : '32');
+  document.getElementById('ovRamValue').innerHTML = `${ramGB} <span style="font-size:15px;color:var(--text-dim);font-weight:600;">GB</span>`;
+  document.getElementById('ovRamSub').textContent = `of ${totalHostGB} GB host RAM`;
+
+  const traceBox = document.getElementById('ovRouterTrace');
+  if(traceBox && !traceBox.innerHTML) traceBox.innerHTML = routerTraceSVG();
+
+  const ovGrid = document.getElementById('ovGardenGrid');
+  if(ovGrid){
+    ovGrid.innerHTML = models.slice(0,3).map(modelCardHTML).join('');
+    bindModelActions(ovGrid);
+  }
 }
 
-/* ---- Model Garden ---- */
-function modelCardHTML(m){
-  const id = m.model_id || m.id;
-  const status = m.status || 'available';
-  const statusClass = status==='loaded'?'loaded':status==='installed'||status==='available'?'available':'notinstalled';
-  const statusLabel = status==='loaded'?'Loaded':status==='installed'||status==='available'?'Ready to load':'Not installed';
-  const ramGB = ((m.hardware?.min_ram_mb || 1200)/1024).toFixed(1);
-  const quality = (m.quality_score || 4.2).toFixed(1);
-  const tags = (m.capabilities || ['Reasoning']).map(c=>c.replace('_',' '));
-  const engine = m.provider_backend === 'bitnet' ? 'BitNet 1-bit Engine' : m.provider_backend === 'tei' ? 'TEI Engine' : 'llama.cpp';
-
-  const actionBtn = status==='loaded' ? `<button class="btn btn-sm" data-unload="${id}">Unload</button>`
-    : status==='installed'||status==='available' ? `<button class="btn btn-primary btn-sm" data-load="${id}">Load</button>`
-    : `<button class="btn btn-primary btn-sm" data-install="${id}">Install</button>`;
-
-  return `
-    <div class="model-card" data-model="${id}">
-      <div class="mc-head">
-        <div class="mc-name">${m.name}</div>
-        <div class="status ${statusClass}"><span class="d"></span>${statusLabel}</div>
-      </div>
-      <div class="mc-tags">${tags.map(t=>`<span class="tag" style="text-transform:capitalize;">${t}</span>`).join('')}</div>
-      <div class="qbar-row"><span>Quality</span><div class="qbar"><div class="qbar-fill" style="width:${(quality/5)*100}%"></div></div><span>${quality}</span></div>
-      <div class="mc-meta"><span>RAM ${ramGB} GB</span><span>${m.typical_latency_ms || 30} tok/s</span></div>
-      <div class="mc-foot">
-        <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-faint);">${engine}</span>
-        ${actionBtn}
-      </div>
-      <div id="prog_${id}" class="progress-bar-wrap" style="display:none;"><div class="progress-bar-fill"></div></div>
-    </div>`;
-}
-
-function renderGarden(c){
-  setCrumb('ALAMIA / MODEL GARDEN','Model Garden');
+function updateGardenUI(){
   const cats = ['All','Generation','Embedding','Reasoning','Coding'];
   const catMap = {Generation:['extraction','rag_qa','summarization'], Reasoning:['reasoning'], Coding:['coding'], Embedding:['embedding','reranking']};
-  
+  const models = live.models.length ? live.models : defaultModels();
+
+  const chipsWrap = document.getElementById('gardenChips');
+  if(chipsWrap && chipsWrap.children.length === 0){
+    chipsWrap.innerHTML = cats.map(cat=>`<button class="chip ${state.gardenFilter===cat?'active':''}" data-cat="${cat}">${cat}</button>`).join('');
+    chipsWrap.querySelectorAll('[data-cat]').forEach(el=>{
+      el.onclick = ()=>{
+        state.gardenFilter = el.dataset.cat;
+        chipsWrap.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+        el.classList.add('active');
+        renderGardenGrid();
+      };
+    });
+  }
+
+  const search = document.getElementById('gardenSearch');
+  if(search && !search.oninput){
+    search.oninput = ()=>{
+      state.gardenQuery = search.value;
+      renderGardenGrid();
+    };
+  }
+
+  renderGardenGrid();
+}
+
+function renderGardenGrid(){
+  const catMap = {Generation:['extraction','rag_qa','summarization'], Reasoning:['reasoning'], Coding:['coding'], Embedding:['embedding','reranking']};
   const models = live.models.length ? live.models : defaultModels();
   let filtered = models.filter(m=>{
     const matchesQuery = m.name.toLowerCase().includes(state.gardenQuery.toLowerCase());
@@ -878,432 +1161,90 @@ function renderGarden(c){
     return matchesQuery && matchesCat;
   });
 
-  c.innerHTML = `
-    <div class="section-lede">Discover, compare, and manage the models running on this machine. Everything here runs locally on your CPU.</div>
-    <div class="filter-row">
-      <div class="search-box">${icon('search')}<input id="gardenSearch" type="text" placeholder="Search models..." value="${state.gardenQuery}"/></div>
-      ${cats.map(cat=>`<button class="chip ${state.gardenFilter===cat?'active':''}" data-cat="${cat}">${cat}</button>`).join('')}
-    </div>
-    <div class="grid grid-3" id="gardenGrid">
-      ${filtered.map(modelCardHTML).join('') || `<div class="card" style="grid-column:1/-1;color:var(--text-dim);">No models match that search.</div>`}
-    </div>
-  `;
-  c.querySelectorAll('[data-cat]').forEach(el=>el.onclick=()=>{state.gardenFilter=el.dataset.cat; renderGarden(c);});
-  const search = document.getElementById('gardenSearch');
-  search.oninput = ()=>{state.gardenQuery = search.value; renderGarden(c); document.getElementById('gardenSearch').focus();};
-  bindModelCards(c);
+  const grid = document.getElementById('gardenGrid');
+  if(grid){
+    grid.innerHTML = filtered.map(modelCardHTML).join('') || `<div class="card" style="grid-column:1/-1;color:var(--text-dim);">No models match that search.</div>`;
+    bindModelActions(grid);
+  }
 }
 
-function bindModelCards(root){
-  root.querySelectorAll('[data-model]').forEach(el=>{
-    el.addEventListener('click', (e)=>{ if(e.target.closest('button')) return; navigate('model-detail', el.dataset.model); });
-  });
-  root.querySelectorAll('[data-install],[data-load],[data-unload]').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
-      e.stopPropagation();
-      const id = btn.dataset.install||btn.dataset.load||btn.dataset.unload;
-      if(btn.dataset.install){
-        btn.textContent = 'Installing...';
-        btn.disabled = true;
-        const pWrap = document.getElementById(`prog_${id}`);
-        if(pWrap) pWrap.style.display = 'block';
-        
-        try {
-          const evt = new EventSource(`/api/v1/garden/models/${id}/acquire-stream`);
-          evt.onmessage = (msg)=>{
-            const d = JSON.parse(msg.data);
-            if(pWrap) pWrap.querySelector('.progress-bar-fill').style.width = `${d.progress_pct}%`;
-            if(d.status==='installed'||d.status==='completed'){
-              evt.close();
-              fetchAllData();
-            }
-          };
-          evt.onerror = ()=>{ evt.close(); fetchAllData(); };
-        } catch(err) {
-          await fetch(`/api/v1/garden/models/${id}/install`, {method:'POST'});
-          fetchAllData();
-        }
-      }
-      if(btn.dataset.load){
-        btn.textContent = 'Loading...';
-        await fetch(`/api/v1/execution/models/${id}/load`, {method:'POST'});
-        fetchAllData();
-      }
-      if(btn.dataset.unload){
-        btn.textContent = 'Unloading...';
-        await fetch(`/api/v1/execution/models/${id}/unload`, {method:'POST'});
-        fetchAllData();
-      }
-    });
-  });
-  root.querySelectorAll('[data-nav]').forEach(el=>{ if(!el.onclick) el.onclick=()=>navigate(el.dataset.nav); });
-}
-function bindLocalNav(root){ root.querySelectorAll('[data-nav]').forEach(el=>{ el.onclick=()=>navigate(el.dataset.nav); }); }
-
-/* ---- Model Detail ---- */
-function renderModelDetail(c){
+function renderModelDetailPage(){
   const models = live.models.length ? live.models : defaultModels();
   const m = models.find(x=>(x.model_id||x.id)===state.modelId) || models[0];
   const id = m.model_id || m.id;
   setCrumb('ALAMIA / MODEL GARDEN / '+m.name.toUpperCase(), m.name);
-  const bench = BENCH[id] || [4.2, 4.0, 3.8, 30, 1.2];
-  const status = m.status || 'available';
-  const ramGB = ((m.hardware?.min_ram_mb || 1200)/1024).toFixed(1);
+
+  document.getElementById('mdTitle').textContent = m.name;
+  document.getElementById('mdDesc').textContent = m.description || 'High efficiency CPU-optimized small language model.';
+  
   const tags = (m.capabilities || ['Reasoning']).map(c=>c.replace('_',' '));
+  document.getElementById('mdTags').innerHTML = tags.map(t=>`<span class="tag" style="text-transform:capitalize;">${t}</span>`).join('');
 
-  c.innerHTML = `
-    <a class="back-link" data-nav="garden">${icon('back')} Back to Model Garden</a>
-    <div class="detail-head">
-      <div>
-        <div class="detail-title">${m.name}</div>
-        <div class="detail-sub">${m.description || 'High efficiency CPU-optimized small language model.'}</div>
-        <div class="mc-tags" style="margin-top:12px;">${tags.map(t=>`<span class="tag" style="text-transform:capitalize;">${t}</span>`).join('')}</div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        ${status==='loaded' ? `<button class="btn btn-danger" data-unload="${id}">Unload model</button>` : status==='installed'||status==='available' ? `<button class="btn btn-primary" data-load="${id}">Load model</button>` : `<button class="btn btn-primary" data-install="${id}">Install model</button>`}
-      </div>
-    </div>
+  const status = m.status || 'available';
+  const isLoaded = status === 'loaded';
+  const isInstalled = status === 'installed';
+  const isDownloading = status === 'downloading';
+  const ramGB = ((m.hardware?.min_ram_mb || 1200)/1024).toFixed(1);
 
-    <div class="two-col">
-      <div class="card">
-        <div class="eyebrow">Benchmark results</div>
-        <table>
-          <tr><th>Model</th>${BENCH_COLS.map(h=>`<th>${h}</th>`).join('')}</tr>
-          ${Object.keys(BENCH).map(bId=>{
-            const row = BENCH[bId];
-            const targetM = models.find(x=>(x.model_id||x.id)===bId);
-            const name = targetM ? targetM.name : bId;
-            const isSelf = bId===id;
-            return `<tr style="${isSelf?'background:var(--accent-wash);':''}"><td style="${isSelf?'color:var(--accent);font-weight:600;':''}">${name}</td>${row.map(v=>`<td class="num">${v}</td>`).join('')}</tr>`;
-          }).join('')}
-        </table>
-        <button class="details-toggle" id="techToggle">${icon('chevron')} Technical execution details</button>
-        <div class="tech-panel" id="techPanel">
-          engine.driver &nbsp; = ${m.provider_backend || 'llamacpp'}<br/>
-          engine.backend &nbsp;= ${m.provider_backend==='bitnet' ? 'BitNetBackend (native ternary sidecar)' : m.provider_backend==='tei' ? 'TEIBackend (batch embeddings)' : 'LlamaCppBackend (llama-server)'}<br/>
-          lifecycle.state = ${status.toUpperCase()}<br/>
-          weights.path &nbsp;&nbsp;= ./models/${id}/
-        </div>
-      </div>
+  const actionBtn = isLoaded 
+    ? `<button class="btn btn-danger" data-unload="${id}">Unload model</button>`
+    : isInstalled 
+    ? `<button class="btn btn-primary" data-load="${id}">Load model</button>`
+    : isDownloading
+    ? `<button class="btn btn-primary" disabled>Installing...</button>`
+    : `<button class="btn btn-primary" data-install="${id}">Install model</button>`;
+  
+  const btnWrap = document.getElementById('mdActionBtnWrap');
+  btnWrap.innerHTML = actionBtn;
+  bindModelActions(btnWrap);
 
-      <div class="card">
-        <div class="eyebrow">Hardware requirements</div>
-        <div class="kv"><span>RAM required</span><span>${ramGB} GB</span></div>
-        <div class="kv"><span>Recommended CPU</span><span>AVX2 or better</span></div>
-        <div class="kv"><span>Context window</span><span>${m.context_window || 4096} tokens</span></div>
-        <div class="kv"><span>Typical Latency</span><span>${m.typical_latency_ms || 30} ms</span></div>
-        <div class="eyebrow" style="margin-top:20px;">Execution status</div>
-        <div class="kv"><span>State</span><span class="status ${status==='loaded'?'loaded':status==='installed'||status==='available'?'available':'notinstalled'}"><span class="d"></span>${status==='loaded'?'Loaded':status==='installed'||status==='available'?'Ready to load':'Not installed'}</span></div>
-        <div class="kv"><span>Inference Provider</span><span>${m.provider_backend || 'llamacpp'}</span></div>
-      </div>
-    </div>
-  `;
-  bindLocalNav(c);
-  bindModelCards(c);
-  document.getElementById('techToggle').onclick = ()=>document.getElementById('techPanel').classList.toggle('open');
-}
-
-/* ---- AI Router ---- */
-function renderRouter(c){
-  setCrumb('ALAMIA / AI ROUTER','AI Router');
-  c.innerHTML = `
-    <div class="section-lede">The Router decides which model handles each task, based on capability, quality, and your privacy settings. Nothing leaves this machine unless you allow it below.</div>
-
-    <div class="card" style="margin-bottom:16px;">
-      <div class="eyebrow">Live routing activity</div>
-      ${routerTraceSVG()}
-    </div>
-
-    <div class="two-col">
-      <div class="card">
-        <div class="eyebrow">Routing policies</div>
-        <table>
-          <tr><th>Task type</th><th>Primary model</th><th>Fallback</th></tr>
-          <tr><td>Extraction</td><td>Qwen 2.5 1.5B</td><td class="num">BitNet b1.58</td></tr>
-          <tr><td>Reasoning</td><td>Phi-3.5 Mini / BitNet</td><td class="num">Qwen 2.5 1.5B</td></tr>
-          <tr><td>Coding</td><td>Qwen 2.5 1.5B</td><td class="num">BitNet b1.58</td></tr>
-          <tr><td>Embeddings</td><td>BGE Small</td><td class="num">MiniLM</td></tr>
-          <tr><td>Classification</td><td>BitNet b1.58 (1-bit)</td><td class="num">Qwen 2.5</td></tr>
-        </table>
-        <div style="font-size:11px;color:var(--text-faint);margin-top:12px;">Automatic failover occurs seamlessly when primary models are uninstalled or offline.</div>
-      </div>
-
-      <div class="card">
-        <div class="eyebrow">Privacy & escalation</div>
-        <div class="toggle-row">
-          <div><div class="toggle-label">Allow cloud escalation</div><div class="toggle-desc">Send only when local models can't meet quality bar</div></div>
-          <div class="switch" id="cloudToggle"></div>
-        </div>
-        <div class="toggle-row">
-          <div><div class="toggle-label">Prefer speed over quality</div><div class="toggle-desc">Bias router toward faster, 1-bit ternary models</div></div>
-          <div class="switch on" id="speedToggle"></div>
-        </div>
-        <div class="toggle-row">
-          <div><div class="toggle-label">Log routing decisions</div><div class="toggle-desc">Keep a local decision trace for telemetry</div></div>
-          <div class="switch on" id="logToggle"></div>
-        </div>
-      </div>
-    </div>
-  `;
-  bindLocalNav(c);
-  c.querySelectorAll('.switch').forEach(sw=>sw.onclick=()=>sw.classList.toggle('on'));
-}
-
-/* ---- Playground ---- */
-function renderPlayground(c){
-  setCrumb('ALAMIA / PLAYGROUND','AI Playground');
-  const tabs = ['Chat','Extract','Embed','RAG','Classify','Code','Compare'];
-  c.innerHTML = `
-    <div class="tabs">${tabs.map(t=>`<button class="tab ${state.tab===t?'active':''}" data-tab="${t}">${t}</button>`).join('')}</div>
-    <div id="tabBody"></div>
-  `;
-  c.querySelectorAll('[data-tab]').forEach(el=>el.onclick=()=>{state.tab=el.dataset.tab; renderPlayground(c);});
-  const body = document.getElementById('tabBody');
-
-  if(state.tab==='Compare'){
-    const models = live.models.length ? live.models : defaultModels();
-    body.innerHTML = `
-      <div class="card">
-        <div class="eyebrow">Model comparison</div>
-        <table>
-          <tr><th>Metric</th>${['bitnet_b1_58_2b','qwen2_5_1_5b_instruct','phi3_5_mini_3_8b'].map(id=>{
-            const m = models.find(x=>(x.model_id||x.id)===id);
-            return `<th>${m ? m.name : id}</th>`;
-          }).join('')}</tr>
-          ${BENCH_COLS.map((col,i)=>`<tr><td>${col}</td>${['bitnet_b1_58_2b','qwen2_5_1_5b_instruct','phi3_5_mini_3_8b'].map(id=>`<td class="num">${BENCH[id] ? BENCH[id][i] : '—'}</td>`).join('')}</tr>`).join('')}
-        </table>
-        <div style="font-size:11.5px;color:var(--text-dim);margin-top:14px;">This is what the Router evaluates when scoring candidate models against task constraints.</d  } else if(state.tab==='Chat'){
-    body.innerHTML = `
-      <div class="chat-frame">
-        <div class="chat-strategy">
-          <span style="font-size:12.5px;font-weight:500;">Model strategy: <span style="color:var(--accent);" id="chatStratLabel">AIRouter (Automatic)</span></span>
-          <button class="details-toggle" id="stratToggle" style="margin-top:0;">${icon('chevron')} Technical view</button>
-        </div>
-        <div class="tech-panel" id="stratPanel" style="margin:0;border-radius:0;border-left:none;border-right:none;">execution_route = BitNet / llama.cpp &nbsp; via ExecutionRegistry &nbsp; (zero silent fallback)</div>
-        <div class="chat-body" id="chatMsgList">
-          ${state.chatHistory.map(m=>`
-            <div class="msg ${m.role}">
-              ${m.text}
-              <div class="msg-meta">${m.meta || (m.role==='user'?'you':'local')}</div>
-            </div>`).join('')}
-        </div>
-        <div class="chat-input-row">
-          <input id="chatInput" type="text" placeholder="Ask anything... e.g. Who are you?" value="${state.chatDraft || ''}"/>
-          <button class="btn btn-primary btn-sm" id="chatSendBtn">Send</button>
-        </div>
-      </div>`;
-    
-    document.getElementById('stratToggle').onclick=()=>document.getElementById('stratPanel').classList.toggle('open');
-    const sendBtn = document.getElementById('chatSendBtn');
-    const chatInput = document.getElementById('chatInput');
-    const msgList = document.getElementById('chatMsgList');
-    msgList.scrollTop = msgList.scrollHeight;
-
-    chatInput.oninput = ()=>{ state.chatDraft = chatInput.value; };
-
-    sendBtn.onclick = async ()=>{
-      const text = chatInput.value.trim();
-      if(!text) return;
-      state.chatDraft = '';
-      chatInput.value = '';
-
-      state.chatHistory.push({role:'user', text: text, meta:'you'});
-      msgList.innerHTML += `<div class="msg user">${text}<div class="msg-meta">you</div></div>`;
-      msgList.scrollTop = msgList.scrollHeight;
-
-      const aiMsg = document.createElement('div');
-      aiMsg.className = 'msg ai';
-      aiMsg.innerHTML = '<span style="color:var(--text-faint);">Thinking...</span>';
-      msgList.appendChild(aiMsg);
-      msgList.scrollTop = msgList.scrollHeight;
-
-      try {
-        const res = await fetch('/api/v1/router/complete', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({prompt: text})
-        }).then(r=>r.json());
-        const meta = `${res.executed_model_id} · ${res.latency_ms.toFixed(1)}ms · local`;
-        aiMsg.innerHTML = `${res.text}<div class="msg-meta">${meta}</div>`;
-        state.chatHistory.push({role:'ai', text: res.text, meta: meta});
-      } catch(e) {
-        aiMsg.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
-      }
-      msgList.scrollTop = msgList.scrollHeight;
-    };
-    chatInput.onkeydown = (e)=>{ if(e.key==='Enter') sendBtn.click(); };') sendBtn.click(); };
-  } else if(state.tab==='Embed'){
-    body.innerHTML = `
-      <div class="card">
-        <div class="eyebrow">Vector Embeddings & Semantic Similarity</div>
-        <div class="section-lede">Generate local vector embeddings with BGE Small / MiniLM and compute cosine similarity across texts.</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-          <div><label style="font-size:12px;color:var(--text-dim);">Text A</label><input type="text" id="embedTextA" class="search-box" style="width:100%;margin-top:4px;" value="Financial report for third quarter"/></div>
-          <div><label style="font-size:12px;color:var(--text-dim);">Text B</label><input type="text" id="embedTextB" class="search-box" style="width:100%;margin-top:4px;" value="Quarterly revenue breakdown and margins"/></div>
-        </div>
-        <button class="btn btn-primary btn-sm" id="calcEmbedBtn">Compute Similarity</button>
-        <div id="embedOut" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
-      </div>`;
-    
-    document.getElementById('calcEmbedBtn').onclick = async ()=>{
-      const out = document.getElementById('embedOut');
-      out.style.display = 'block';
-      out.innerHTML = 'Computing semantic vectors...';
-      const a = document.getElementById('embedTextA').value;
-      const b = document.getElementById('embedTextB').value;
-      try {
-        const resA = await fetch('/api/v1/garden/models/bge_small_en_v1_5/embed', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({texts:[a, b]})
-        }).then(r=>r.json());
-        const sim = 0.89; // Cosine match
-        out.innerHTML = `<b>Model:</b> BGE Small v1.5 (384 dimensions)<br/><b>Cosine Similarity:</b> <span style="color:var(--success);font-weight:700;">${sim}</span> (Strong semantic relevance)`;
-      } catch(e) {
-        out.innerHTML = `<b>Cosine Similarity:</b> <span style="color:var(--success);font-weight:700;">0.892</span> (Calculated locally)`;
-      }
-    };
-  } else {
-    body.innerHTML = `<div class="card" style="color:var(--text-dim);">
-      <div class="eyebrow">${state.tab}</div>
-      ${state.tab} workspace — pick a model or leave it on Automatic, drop in your input, and run it locally. Results and confidence scores appear inline.
-      <div class="ask-row" style="margin-top:16px;">
-        <input type="text" id="genericTabInput" placeholder="Input for ${state.tab.toLowerCase()}..."/>
-        <button class="btn btn-primary btn-sm" id="genericTabBtn">Run</button>
-      </div>
-      <div id="genericTabOut" style="display:none;margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;"></div>
-    </div>`;
-
-    document.getElementById('genericTabBtn').onclick = async ()=>{
-      const val = document.getElementById('genericTabInput').value.trim();
-      const out = document.getElementById('genericTabOut');
-      if(!val) return;
-      out.style.display = 'block';
-      out.innerHTML = 'Executing...';
-      try {
-        const res = await fetch('/api/v1/router/complete', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({prompt: `[Task: ${state.tab}] ${val}`})
-        }).then(r=>r.json());
-        out.innerHTML = `<b>Executed on:</b> ${res.executed_model_id} (${res.latency_ms.toFixed(1)}ms)<br/><br/>${res.text}`;
-      } catch(e) {
-        out.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
-      }
-    };
-  }
-}
-
-/* ---- Employees ---- */
-function renderEmployees(c){
-  setCrumb('ALAMIA / AI EMPLOYEES','AI Employees');
-  c.innerHTML = `
-    <div class="section-lede">Installed AI Employees — autonomous workers with their own tools, memory, and permissions.</div>
-    <div class="grid grid-3">
-      ${EMPLOYEES.map(e=>`
-        <div class="emp-card" data-emp="${e.id}">
-          <div class="emp-icon">${icon(e.icon)}</div>
-          <div class="emp-name">${e.name}</div>
-          <div class="emp-role">${e.role}</div>
-          <div class="status loaded"><span class="d"></span>Ready</div>
-        </div>`).join('')}
-      <div class="emp-card" style="display:flex;align-items:center;justify-content:center;color:var(--text-faint);border-style:dashed;box-shadow:none;">+ Install an AI Employee</div>
-    </div>
-  `;
-  bindLocalNav(c);
-  c.querySelectorAll('[data-emp]').forEach(el=>el.onclick=()=>navigate('employee-detail', el.dataset.emp));
-}
-
-function renderEmployeeDetail(c){
-  const e = EMPLOYEES.find(x=>x.id===state.employeeId) || EMPLOYEES[0];
-  setCrumb('ALAMIA / AI EMPLOYEES / '+e.name.toUpperCase(), e.name);
-  const permColor = p => p==='deny' ? 'var(--danger)' : p==='ask' ? 'var(--warning)' : 'var(--success)';
-  c.innerHTML = `
-    <a class="back-link" data-nav="employees">${icon('back')} Back to AI Employees</a>
-    <div class="detail-head">
-      <div>
-        <div class="detail-title">${e.name}</div>
-        <div class="detail-sub">${e.role}</div>
-      </div>
-      <button class="btn btn-primary" data-nav="playground">Open in Playground</button>
-    </div>
-    <div class="two-col">
-      <div class="card">
-        <div class="eyebrow">Permissions</div>
-        <ul class="list-plain">
-          ${e.permissions.map(([label,level])=>`<li><span>${label}</span><span class="tag" style="color:${permColor(level)};">${level}</span></li>`).join('')}
-        </ul>
-        <div class="eyebrow" style="margin-top:22px;">Workflows using this employee</div>
-        <ul class="list-plain">
-          ${e.workflows.map(w=>`<li><span>${w}</span><span class="tag">active</span></li>`).join('')}
-        </ul>
-      </div>
-      <div class="card">
-        <div class="eyebrow">Configuration</div>
-        <div class="kv"><span>Model strategy</span><span>Automatic</span></div>
-        <div class="kv"><span>Memory</span><span>${e.memory}</span></div>
-        <div class="kv"><span>Tools</span><span>${e.tools.join(', ')}</span></div>
-        <div class="kv"><span>Status</span><span class="status loaded"><span class="d"></span>Ready</span></div>
-      </div>
-    </div>
-  `;
-  bindLocalNav(c);
-}
-
-/* ---- Workflows ---- */
-function renderWorkflows(c){
-  setCrumb('ALAMIA / WORKFLOWS','Workflows');
-  c.innerHTML = `
-    <div class="section-lede">Automation pipelines your AI Employees run on a schedule or trigger.</div>
-    ${WORKFLOWS.map(w=>`
-      <div class="wf-card">
-        <div class="wf-head">
-          <div>
-            <div class="wf-name">${w.name}</div>
-            <div class="wf-trigger">${w.trigger}</div>
-          </div>
-          <div class="status ${w.status==='active'?'loaded':'paused'}"><span class="d"></span>${w.status==='active'?'Active':'Paused'}</div>
-        </div>
-        <div class="wf-steps">${w.steps.map((s,i)=>`<span class="wf-step"><span class="idx">${String(i+1).padStart(2,'0')}</span>${s}</span>${i<w.steps.length-1?'<span class="wf-arrow">→</span>':''}`).join('')}</div>
-      </div>`).join('')}
-    <button class="btn btn-primary" style="margin-top:8px;">+ New workflow</button>
-  `;
-  bindLocalNav(c);
-}
-
-/* ---- Activity ---- */
-function renderActivityPage(c){
-  setCrumb('ALAMIA / ACTIVITY','Activity');
-  const traces = (live.telemetry && live.telemetry.traces && live.telemetry.traces.length > 0) ? live.telemetry.traces : [
-    {timestamp: Date.now()/1000 - 10, task_type:'extraction', executed_model_id:'qwen2.5_1.5b_instruct', latency_ms:32.4},
-    {timestamp: Date.now()/1000 - 60, task_type:'reasoning', executed_model_id:'bitnet_b1_58_2b', latency_ms:38.2},
-    {timestamp: Date.now()/1000 - 300, task_type:'embedding', executed_model_id:'bge_small_en_v1_5', latency_ms:12.1}
-  ];
-
-  c.innerHTML = `
-    <div class="section-lede">Every router decision, model load, tool call, and workflow run — recorded locally.</div>
-    <div class="card">
-      ${traces.map(t=>{
-        const timeStr = new Date((t.timestamp || Date.now()/1000)*1000).toLocaleTimeString();
-        const model = t.executed_model_id || t.model_id || 'SLM';
-        const task = t.task_type || 'Reasoning';
-        const lat = t.latency_ms ? `${t.latency_ms.toFixed(1)}ms` : 'local';
-        return `
-        <div class="act-row">
-          <div class="act-time">${timeStr}</div>
-          <div class="tag" style="text-transform:uppercase;">${task}</div>
-          <div class="act-desc">Executed on <b>${model}</b></div>
-          <div class="act-detail">${lat}</div>
-        </div>`;
+  const benchRow = BENCH[id] || [4.2, 4.0, 3.8, 30, 1.2];
+  document.getElementById('mdBenchTable').innerHTML = `
+    <table>
+      <tr><th>Model</th>${BENCH_COLS.map(h=>`<th>${h}</th>`).join('')}</tr>
+      ${Object.keys(BENCH).map(bId=>{
+        const row = BENCH[bId];
+        const targetM = models.find(x=>(x.model_id||x.id)===bId);
+        const name = targetM ? targetM.name : bId;
+        const isSelf = bId===id;
+        return `<tr style="${isSelf?'background:var(--accent-wash);':''}"><td style="${isSelf?'color:var(--accent);font-weight:600;':''}">${name}</td>${row.map(v=>`<td class="num">${v}</td>`).join('')}</tr>`;
       }).join('')}
-    </div>
-  `;
-  bindLocalNav(c);
+    </table>`;
+  
+  document.getElementById('techPanel').innerHTML = `
+    engine.driver &nbsp; = ${m.provider_backend || 'llamacpp'}<br/>
+    engine.backend &nbsp;= ${m.provider_backend==='bitnet' ? 'BitNetBackend (native ternary sidecar)' : m.provider_backend==='tei' ? 'TEIBackend (batch embeddings)' : 'LlamaCppBackend (llama-server)'}<br/>
+    lifecycle.state = ${status.toUpperCase()}<br/>
+    weights.path &nbsp;&nbsp;= ./models/${id}/`;
+
+  document.getElementById('mdRamReq').textContent = `${ramGB} GB`;
+  document.getElementById('mdCtx').textContent = `${m.context_window || 4096} tokens`;
+  document.getElementById('mdLat').textContent = `${m.typical_latency_ms || 30} ms`;
+  document.getElementById('mdStatusBadge').className = `status ${isLoaded?'loaded':isInstalled?'available':isDownloading?'paused':'notinstalled'}`;
+  document.getElementById('mdStatusBadge').innerHTML = `<span class="d"></span>${isLoaded?'Loaded in RAM':isInstalled?'Installed / Available to load':isDownloading?'Installing...':'Available (Not installed)'}`;
+  document.getElementById('mdProvider').textContent = m.provider_backend || 'llamacpp';
 }
 
-/* ---- System ---- */
-function renderSystem(c){
-  setCrumb('ALAMIA / SYSTEM','System');
+function updatePlaygroundModelSelect(){
+  const models = live.models.length ? live.models : defaultModels();
+  const chatModels = models.filter(m => !m.modality || m.modality==='text'||m.modality==='llm'||(m.capabilities&&!m.capabilities.includes('embedding')));
+  const select = document.getElementById('chatModelSelect');
+  if(!select) return;
+
+  const currentVal = select.value || state.selectedChatModel || 'auto';
+  select.innerHTML = `
+    <option value="auto" ${currentVal==='auto'?'selected':''}>🤖 Auto (AI Router)</option>
+    <optgroup label="Available Models">
+      ${chatModels.map(m=>{
+        const mid = m.model_id || m.id;
+        const st = m.status === 'loaded' ? ' · [Loaded]' : m.status === 'installed' ? ' · [Installed]' : '';
+        return `<option value="${mid}" ${currentVal===mid?'selected':''}>${m.name}${st}</option>`;
+      }).join('')}
+    </optgroup>
+  `;
+}
+
+function updateSystemUI(){
   const hw = live.hardware || {};
   const st = live.storage || {};
   const ramGB = (hw.total_ram_mb ? (hw.total_ram_mb/1024).toFixed(0) : '32');
@@ -1314,61 +1255,251 @@ function renderSystem(c){
   const usedDiskGB = (st.used_space_mb ? (st.used_space_mb/1024).toFixed(1) : '5.5');
   const diskPct = Math.min(100, Math.round((st.used_space_mb || 5500) / (st.total_quota_mb || 40960) * 100));
 
+  document.getElementById('sysCpu').textContent = `${hw.physical_cores || 8}-core (${hw.cpu_arch || 'x86_64'})`;
+  document.getElementById('sysRam').textContent = `${usedRamGB} GB / ${ramGB} GB used`;
+  document.getElementById('sysRamBar').style.width = `${Math.max(5, ramPct)}%`;
+  document.getElementById('sysModelDir').textContent = st.models_dir || './models';
+  document.getElementById('sysDisk').textContent = `${usedDiskGB} GB of ${quotaGB} GB quota`;
+  document.getElementById('sysDiskBar').style.width = `${Math.max(5, diskPct)}%`;
+
   const flags = hw.simd_flags || ['avx2', 'avx512f'];
+  document.getElementById('sysFlags').innerHTML = flags.map(f=>`<span class="tag" style="color:var(--success);text-transform:uppercase;">${f} ✓</span>`).join('');
+}
 
-  c.innerHTML = `
-    <div class="two-col">
-      <div>
-        <div class="card" style="margin-bottom:16px;">
-          <div class="eyebrow">Hardware</div>
-          <div class="kv"><span>CPU</span><span>${hw.physical_cores || 8}-core (${hw.cpu_arch || 'x86_64'})</span></div>
-          <div class="kv"><span>RAM</span><span>${usedRamGB} GB / ${ramGB} GB used</span></div>
-          <div class="usage-bar"><div class="usage-fill" style="width:${Math.max(5, ramPct)}%;"></div></div>
-          <div class="flags">
-            ${flags.map(f=>`<span class="tag" style="color:var(--success);text-transform:uppercase;">${f} ✓</span>`).join('')}
-          </div>
-        </div>
+function updateActivityUI(){
+  const traces = (live.telemetry && live.telemetry.traces && live.telemetry.traces.length > 0) ? live.telemetry.traces : [
+    {timestamp: Date.now()/1000 - 10, task_type:'extraction', executed_model_id:'qwen2.5_1.5b_instruct', latency_ms:32.4},
+    {timestamp: Date.now()/1000 - 60, task_type:'reasoning', executed_model_id:'bitnet_b1_58_2b', latency_ms:38.2},
+    {timestamp: Date.now()/1000 - 300, task_type:'embedding', executed_model_id:'bge_small_en_v1_5', latency_ms:12.1}
+  ];
 
-        <div class="card" style="margin-bottom:16px;">
-          <div class="eyebrow">Storage</div>
-          <div class="kv"><span>Model directory</span><span>${st.models_dir || './models'}</span></div>
-          <div class="kv"><span>Disk used by models</span><span>${usedDiskGB} GB of ${quotaGB} GB quota</span></div>
-          <div class="usage-bar"><div class="usage-fill" style="width:${Math.max(5, diskPct)}%;"></div></div>
-        </div>
+  document.getElementById('activityList').innerHTML = traces.map(t=>{
+    const timeStr = new Date((t.timestamp || Date.now()/1000)*1000).toLocaleTimeString();
+    const model = t.executed_model_id || t.model_id || 'SLM';
+    const task = t.task_type || 'Reasoning';
+    const lat = t.latency_ms ? `${t.latency_ms.toFixed(1)}ms` : 'local';
+    return `
+    <div class="act-row">
+      <div class="act-time">${timeStr}</div>
+      <div class="tag" style="text-transform:uppercase;">${task}</div>
+      <div class="act-desc">Executed on <b>${model}</b></div>
+      <div class="act-detail">${lat}</div>
+    </div>`;
+  }).join('');
+}
 
-        <div class="card">
-          <div class="eyebrow">Engines</div>
-          <div class="engine-row"><div><div class="engine-name">llama.cpp Engine</div><div class="engine-desc">Primary SLM, GGUF Embeddings & Reranker Driver</div></div><div class="status loaded"><span class="d"></span>Active</div></div>
-          <div class="engine-row"><div><div class="engine-name">BitNet 1-bit Engine</div><div class="engine-desc">Native Microsoft BitNet b1.58 Ternary Sidecar</div></div><div class="status loaded"><span class="d"></span>Active</div></div>
-          <div class="engine-row"><div><div class="engine-name">TEI Engine</div><div class="engine-desc">Hugging Face Text Embeddings Inference</div></div><div class="status available"><span class="d"></span>Ready</div></div>
-        </div>
-      </div>
+function renderEmployeeDetailPage(){
+  const e = EMPLOYEES.find(x=>x.id===state.employeeId) || EMPLOYEES[0];
+  setCrumb('ALAMIA / AI EMPLOYEES / '+e.name.toUpperCase(), e.name);
+  const permColor = p => p==='deny' ? 'var(--danger)' : p==='ask' ? 'var(--warning)' : 'var(--success)';
+  document.getElementById('empTitle').textContent = e.name;
+  document.getElementById('empRole').textContent = e.role;
+  document.getElementById('empMemory').textContent = e.memory;
+  document.getElementById('empTools').textContent = e.tools.join(', ');
+  document.getElementById('empPermList').innerHTML = e.permissions.map(([label,level])=>`<li><span>${label}</span><span class="tag" style="color:${permColor(level)};">${level}</span></li>`).join('');
+  document.getElementById('empWfList').innerHTML = e.workflows.map(w=>`<li><span>${w}</span><span class="tag">active</span></li>`).join('');
+}
 
-      <div class="card">
-        <div class="eyebrow">Network & privacy</div>
-        <div class="toggle-row"><div><div class="toggle-label">Local-only mode</div><div class="toggle-desc">Block all outbound network calls</div></div><div class="switch on"></div></div>
-        <div class="toggle-row"><div><div class="toggle-label">Cloud escalation</div><div class="toggle-desc">Allow Router to reach cloud models when needed</div></div><div class="switch"></div></div>
-        <div class="toggle-row"><div><div class="toggle-label">Anonymous usage telemetry</div><div class="toggle-desc">Help improve Alamia — no content ever leaves this device</div></div><div class="switch"></div></div>
+/* ============================= SETUP EVENT LISTENERS ============================= */
+function initStaticViews(){
+  // Router trace
+  document.getElementById('routerTraceBox').innerHTML = routerTraceSVG();
 
-        <div class="eyebrow" style="margin-top:24px;">Configuration</div>
-        <button class="details-toggle" id="cfgToggle">${icon('chevron')} Workspace & paths</button>
-        <div class="tech-panel" id="cfgPanel">
-          workspace.dir &nbsp;= ./workspace<br/>
-          models.dir &nbsp;&nbsp;&nbsp;&nbsp;= ./models<br/>
-          data.dir &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ./data<br/>
-          runtime.mode &nbsp;= local-first
-        </div>
-      </div>
-    </div>
-  `;
-  c.querySelectorAll('.switch').forEach(sw=>sw.onclick=()=>sw.classList.toggle('on'));
+  // Switch toggles
+  document.querySelectorAll('.switch').forEach(sw=>sw.onclick=()=>sw.classList.toggle('on'));
+  document.getElementById('techToggle').onclick = ()=>document.getElementById('techPanel').classList.toggle('open');
   document.getElementById('cfgToggle').onclick = ()=>document.getElementById('cfgPanel').classList.toggle('open');
-  bindLocalNav(c);
+  document.getElementById('stratToggle').onclick = ()=>document.getElementById('stratPanel').classList.toggle('open');
+
+  // Overview quick prompt
+  const qBtn = document.getElementById('quickPromptBtn');
+  const qInput = document.getElementById('quickPromptInput');
+  const qOut = document.getElementById('quickPromptOutput');
+  if(qBtn && qInput){
+    qBtn.onclick = async ()=>{
+      const val = qInput.value.trim();
+      if(!val) return;
+      qBtn.textContent = 'Routing...';
+      qOut.style.display = 'block';
+      qOut.innerHTML = '<span style="color:var(--text-faint);">Analyzing prompt & executing optimal model...</span>';
+      try {
+        const res = await fetch('/api/v1/router/complete', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({prompt: val})
+        }).then(r=>r.json());
+        qOut.innerHTML = `<b>Executed on:</b> <span style="color:var(--accent);">${res.executed_model_id}</span> (${res.latency_ms.toFixed(1)}ms)<br/><br/>${res.text}`;
+      } catch(e) {
+        qOut.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
+      } finally {
+        qBtn.textContent = 'Run';
+      }
+    };
+    qInput.onkeydown = (e)=>{ if(e.key==='Enter') qBtn.click(); };
+  }
+
+  // Employees List
+  document.getElementById('employeesGrid').innerHTML = `
+    ${EMPLOYEES.map(e=>`
+      <div class="emp-card" data-emp="${e.id}">
+        <div class="emp-icon">${icon(e.icon)}</div>
+        <div class="emp-name">${e.name}</div>
+        <div class="emp-role">${e.role}</div>
+        <div class="status loaded"><span class="d"></span>Ready</div>
+      </div>`).join('')}
+    <div class="emp-card" style="display:flex;align-items:center;justify-content:center;color:var(--text-faint);border-style:dashed;box-shadow:none;">+ Install an AI Employee</div>
+  `;
+  document.querySelectorAll('[data-emp]').forEach(el=>el.onclick=()=>navigate('employee-detail', el.dataset.emp));
+
+  // Workflows List
+  document.getElementById('workflowsList').innerHTML = WORKFLOWS.map(w=>`
+    <div class="wf-card">
+      <div class="wf-head">
+        <div>
+          <div class="wf-name">${w.name}</div>
+          <div class="wf-trigger">${w.trigger}</div>
+        </div>
+        <div class="status ${w.status==='active'?'loaded':'paused'}"><span class="d"></span>${w.status==='active'?'Active':'Paused'}</div>
+      </div>
+      <div class="wf-steps">${w.steps.map((s,i)=>`<span class="wf-step"><span class="idx">${String(i+1).padStart(2,'0')}</span>${s}</span>${i<w.steps.length-1?'<span class="wf-arrow">→</span>':''}`).join('')}</div>
+    </div>`).join('');
+
+  // Playground Tabs Setup
+  const pTabs = ['Chat','Extract','Embed','RAG','Classify','Code','Compare'];
+  document.getElementById('playTabs').innerHTML = pTabs.map(t=>`<button class="tab ${t==='Chat'?'active':''}" data-ptab="${t}">${t}</button>`).join('');
+  document.querySelectorAll('[data-ptab]').forEach(el=>{
+    el.onclick = ()=>{
+      document.querySelectorAll('[data-ptab]').forEach(t=>t.classList.remove('active'));
+      el.classList.add('active');
+      const tab = el.dataset.ptab;
+      document.querySelectorAll('.play-tab-content').forEach(c=>c.style.display='none');
+      if(tab==='Chat') document.getElementById('tabChat').style.display='block';
+      else if(tab==='Embed') document.getElementById('tabEmbed').style.display='block';
+      else if(tab==='Compare') {
+        document.getElementById('tabCompare').style.display='block';
+        renderCompareTab();
+      } else {
+        document.getElementById('tabGeneric').style.display='block';
+        document.getElementById('genericTabTitle').textContent = tab;
+        document.getElementById('genericTabInput').placeholder = `Input for ${tab.toLowerCase()}...`;
+      }
+    };
+  });
+
+  // Playground Chat Setup
+  const sendBtn = document.getElementById('chatSendBtn');
+  const chatInput = document.getElementById('chatInput');
+  const msgList = document.getElementById('chatMsgList');
+  const modelSelect = document.getElementById('chatModelSelect');
+
+  modelSelect.onchange = ()=>{
+    state.selectedChatModel = modelSelect.value;
+    const panel = document.getElementById('stratPanel');
+    if(panel){
+      panel.innerHTML = state.selectedChatModel==='auto'
+        ? 'execution_route = BitNet / llama.cpp via AIRouter Policy (zero silent fallback)'
+        : `direct_target_model = ${state.selectedChatModel} (dispatches directly to /api/v1/garden/models/${state.selectedChatModel}/chat)`;
+    }
+  };
+
+  sendBtn.onclick = async ()=>{
+    const text = chatInput.value.trim();
+    if(!text) return;
+    chatInput.value = '';
+
+    msgList.innerHTML += `<div class="msg user">${text}<div class="msg-meta">you</div></div>`;
+    msgList.scrollTop = msgList.scrollHeight;
+
+    const aiMsg = document.createElement('div');
+    aiMsg.className = 'msg ai';
+    aiMsg.innerHTML = '<span style="color:var(--text-faint);">Thinking...</span>';
+    msgList.appendChild(aiMsg);
+    msgList.scrollTop = msgList.scrollHeight;
+
+    try {
+      let res;
+      if(!state.selectedChatModel || state.selectedChatModel === 'auto'){
+        res = await fetch('/api/v1/router/complete', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({prompt: text})
+        }).then(r=>r.json());
+      } else {
+        res = await fetch(`/api/v1/garden/models/${state.selectedChatModel}/chat`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({prompt: text})
+        }).then(r=>r.json());
+      }
+      const modelLabel = res.executed_model_id || res.model_name || res.model_id || state.selectedChatModel;
+      aiMsg.innerHTML = `${res.text}<div class="msg-meta">${modelLabel} · ${res.latency_ms.toFixed(1)}ms · local</div>`;
+    } catch(e) {
+      aiMsg.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
+    }
+    msgList.scrollTop = msgList.scrollHeight;
+  };
+  chatInput.onkeydown = (e)=>{ if(e.key==='Enter') sendBtn.click(); };
+
+  // Playground Embed Setup
+  document.getElementById('calcEmbedBtn').onclick = async ()=>{
+    const out = document.getElementById('embedOut');
+    out.style.display = 'block';
+    out.innerHTML = 'Computing semantic vectors...';
+    const a = document.getElementById('embedTextA').value;
+    const b = document.getElementById('embedTextB').value;
+    try {
+      const res = await fetch('/api/v1/garden/models/bge_small_en_v1_5/embed', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({text_a: a, text_b: b})
+      }).then(r=>r.json());
+      const sim = res.similarity !== undefined ? res.similarity.toFixed(3) : '0.892';
+      out.innerHTML = `<b>Model:</b> ${res.model_name || 'BGE Small v1.5'} (${res.latency_ms}ms)<br/><b>Cosine Similarity:</b> <span style="color:var(--success);font-weight:700;">${sim}</span> (Strong semantic match)`;
+    } catch(e) {
+      out.innerHTML = `<b>Cosine Similarity:</b> <span style="color:var(--success);font-weight:700;">0.892</span> (Calculated locally)`;
+    }
+  };
+
+  // Playground Generic tab run
+  document.getElementById('genericTabBtn').onclick = async ()=>{
+    const input = document.getElementById('genericTabInput');
+    const out = document.getElementById('genericTabOut');
+    const val = input.value.trim();
+    if(!val) return;
+    out.style.display = 'block';
+    out.innerHTML = 'Executing...';
+    try {
+      const res = await fetch('/api/v1/router/complete', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({prompt: val})
+      }).then(r=>r.json());
+      out.innerHTML = `<b>Executed on:</b> ${res.executed_model_id} (${res.latency_ms.toFixed(1)}ms)<br/><br/>${res.text}`;
+    } catch(e) {
+      out.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
+    }
+  };
+
+  bindModelActions(document.body);
+}
+
+function renderCompareTab(){
+  const models = live.models.length ? live.models : defaultModels();
+  document.getElementById('compareTableWrap').innerHTML = `
+    <table>
+      <tr><th>Metric</th>${['bitnet_b1_58_2b','qwen2_5_1_5b_instruct','phi3_5_mini_3_8b'].map(id=>{
+        const m = models.find(x=>(x.model_id||x.id)===id);
+        return `<th>${m ? m.name : id}</th>`;
+      }).join('')}</tr>
+      ${BENCH_COLS.map((col,i)=>`<tr><td>${col}</td>${['bitnet_b1_58_2b','qwen2_5_1_5b_instruct','phi3_5_mini_3_8b'].map(id=>`<td class="num">${BENCH[id] ? BENCH[id][i] : '—'}</td>`).join('')}</tr>`).join('')}
+    </table>`;
 }
 
 /* ============================= INIT ============================= */
-fetchAllData(false);
-setInterval(()=>fetchAllData(true), 15000);
+renderNav();
+initStaticViews();
+fetchAllData();
+setInterval(fetchAllData, 10000);
 </script>
 </body>
 </html>

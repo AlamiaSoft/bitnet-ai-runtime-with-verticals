@@ -10,6 +10,8 @@ services:
       - ./data:/app/data
       - ./models:/app/models
       - ./workspace:/app/workspace
+      - ./bitnet_runtime:/app/bitnet_runtime
+      - ./verticals:/app/verticals
     env_file:
       - .env
     environment:
