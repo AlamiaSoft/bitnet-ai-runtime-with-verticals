@@ -1227,21 +1227,36 @@ function renderModelDetailPage(){
 
 function updatePlaygroundModelSelect(){
   const models = live.models.length ? live.models : defaultModels();
-  const chatModels = models.filter(m => !m.modality || m.modality==='text'||m.modality==='llm'||(m.capabilities&&!m.capabilities.includes('embedding')));
+  // Include all conversational / generative text models, exclude pure embedding/reranker
+  const chatModels = models.filter(m => m.modality !== 'embedding' && m.modality !== 'reranker');
   const select = document.getElementById('chatModelSelect');
   if(!select) return;
 
-  const currentVal = select.value || state.selectedChatModel || 'auto';
-  select.innerHTML = `
-    <option value="auto" ${currentVal==='auto'?'selected':''}>🤖 Auto (AI Router)</option>
-    <optgroup label="Available Models">
-      ${chatModels.map(m=>{
+  const currentVal = state.selectedChatModel || select.value || 'auto';
+
+  const installed = chatModels.filter(m => m.status === 'installed' || m.status === 'loaded');
+  const other = chatModels.filter(m => m.status !== 'installed' && m.status !== 'loaded');
+
+  let html = `<option value="auto" ${currentVal==='auto'?'selected':''}>🤖 Auto (AI Router)</option>`;
+  if(installed.length > 0){
+    html += `<optgroup label="Installed & Loaded Models">
+      ${installed.map(m => {
         const mid = m.model_id || m.id;
-        const st = m.status === 'loaded' ? ' · [Loaded]' : m.status === 'installed' ? ' · [Installed]' : '';
-        return `<option value="${mid}" ${currentVal===mid?'selected':''}>${m.name}${st}</option>`;
+        const tag = m.status === 'loaded' ? '🟢 Loaded' : '⚡ Ready';
+        return `<option value="${mid}" ${currentVal===mid?'selected':''}>${m.name} (${tag})</option>`;
       }).join('')}
-    </optgroup>
-  `;
+    </optgroup>`;
+  }
+  if(other.length > 0){
+    html += `<optgroup label="Available in Garden (Auto-Loads on demand)">
+      ${other.map(m => {
+        const mid = m.model_id || m.id;
+        return `<option value="${mid}" ${currentVal===mid?'selected':''}>${m.name}</option>`;
+      }).join('')}
+    </optgroup>`;
+  }
+  select.innerHTML = html;
+  select.value = currentVal;
 }
 
 function updateSystemUI(){
