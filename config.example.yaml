@@ -18,7 +18,7 @@ inference:
   max_tokens: 1024
   context_window: 4096
   threads: 4
-  local_endpoint_url: "http://127.0.0.1:11434/v1"
+  local_endpoint_url: "http://127.0.0.1:8080/v1"
 
 memory:
   db_path: "./data/memory.db"

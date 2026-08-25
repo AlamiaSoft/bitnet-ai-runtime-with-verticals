@@ -50,6 +50,7 @@ class ModelCapabilityRegistry:
                 is_healthy=manifest.is_healthy,
                 is_installed=is_installed,
                 is_loaded=is_loaded,
+                is_development_only=getattr(manifest, "is_development_only", False),
                 metadata={
                     "family": str(manifest.family),
                     "modality": str(manifest.modality),

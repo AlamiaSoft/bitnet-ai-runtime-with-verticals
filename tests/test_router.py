@@ -20,9 +20,37 @@ def mock_router(tmp_path):
     cfg.memory.db_path = tmp_path / "router_test.db"
 
     registry = ModelCapabilityRegistry()
-    # Ensure mock engine profile is present
+    test_profile = ModelCapabilityProfile(
+        model_id="test_runtime_engine",
+        name="Test Runtime Engine",
+        tier=ModelTier.LOCAL_1BIT,
+        provider="mock",
+        capabilities=set(TaskType),
+        task_ratings={t: 4.2 for t in TaskType},
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        typical_latency_ms=10.0,
+        quality_score=4.2,
+        is_development_only=False,
+    )
+    registry.register(test_profile)
     router = AIRouter(registry=registry, cfg=cfg)
+    router._engine_cache["mock"] = MockInferenceEngine()
     return router
+
+def test_mock_engine_excluded_from_production_routing():
+    registry = ModelCapabilityRegistry()
+    policy = RoutingPolicyEngine(registry)
+
+    req = TaskRequirements(
+        task_type=TaskType.DIALOGUE,
+        privacy=PrivacyRequirement.AIRGAPPED_LOCAL_ONLY,
+    )
+    decision = policy.evaluate_route(req)
+    assert decision.primary_model.model_id != "mock_local_engine"
+    assert "mock" not in decision.primary_model.model_id
+    for m in decision.fallback_chain:
+        assert m.model_id != "mock_local_engine"
 
 def test_privacy_constraint_filtering():
     registry = ModelCapabilityRegistry()
@@ -127,7 +155,7 @@ async def test_router_automatic_fallback_on_primary_failure(tmp_path):
     assert trace.fallback_invoked is True
     assert len(trace.attempts) >= 2
     assert trace.attempts[0]["success"] is False
-    assert trace.attempts[1]["success"] is True
+    assert trace.attempts[-1]["success"] is True
 
 def test_heuristic_task_inference(mock_router):
     req1 = mock_router.infer_task_requirements("Please classify this customer ticket priority")
@@ -141,3 +169,74 @@ def test_heuristic_task_inference(mock_router):
 
     req4 = mock_router.infer_task_requirements("Generate a morning executive briefing digest")
     assert req4.task_type == TaskType.SUMMARIZATION
+
+    # Ambiguous / casual inputs MUST NOT default to reasoning
+    req5 = mock_router.infer_task_requirements("123")
+    assert req5.task_type == TaskType.DIALOGUE
+
+    req6 = mock_router.infer_task_requirements("Recommend 3 romantic Indian songs")
+    assert req6.task_type == TaskType.DIALOGUE
+
+    # Explicit deep analytical tasks trigger reasoning
+    req7 = mock_router.infer_task_requirements("Please prove by mathematical induction that n^2 >= 0")
+    assert req7.task_type == TaskType.REASONING
+
+@pytest.mark.asyncio
+async def test_two_stage_routing_decision_structure(mock_router):
+    resp, trace = await mock_router.complete(
+        prompt="Hi, what is your name?",
+        task_type=TaskType.DIALOGUE,
+    )
+    assert trace.decision is not None
+    assert trace.decision.model_selection is not None
+    assert trace.decision.model_selection.model_reason != ""
+    assert trace.decision.execution_placement is not None
+    assert trace.decision.execution_placement.runtime_type is not None
+    assert trace.decision.execution_placement.target is not None
+    assert trace.why != ""
+    assert "->" in trace.why
+
+@pytest.mark.asyncio
+async def test_runtime_resolver_native_first_resolution():
+    from bitnet_runtime.execution.runtime_resolver import ExecutionRuntimeResolver
+    from bitnet_runtime.model_garden.catalog import ModelGarden
+    from bitnet_runtime.router.models import RuntimeType
+
+    garden = ModelGarden()
+    bitnet_manifest = garden.get("bitnet_b1_58_2b")
+    assert bitnet_manifest is not None
+
+    resolver = ExecutionRuntimeResolver()
+    placement = await resolver.resolve_execution(bitnet_manifest, privacy=PrivacyRequirement.AIRGAPPED_LOCAL_ONLY)
+    assert placement.runtime_type in (RuntimeType.NATIVE_CPU, RuntimeType.CONTAINER)
+    assert placement.target is not None
+    assert placement.endpoint_url != ""
+    assert placement.why != ""
+
+    # Test in-process GGUF resolution
+    qwen_manifest = garden.get("qwen2.5_1.5b_instruct")
+    if qwen_manifest:
+        placement_qwen = await resolver.resolve_execution(qwen_manifest, privacy=PrivacyRequirement.AIRGAPPED_LOCAL_ONLY)
+        assert placement_qwen.runtime_type == RuntimeType.NATIVE_CPU
+        assert "In-Process GGUF" in placement_qwen.endpoint_label
+
+@pytest.mark.asyncio
+async def test_runtime_resolver_avx2_missing_fallback(monkeypatch):
+    from bitnet_runtime.execution import runtime_resolver
+    from bitnet_runtime.execution.runtime_resolver import ExecutionRuntimeResolver
+    from bitnet_runtime.model_garden.catalog import ModelGarden
+    from bitnet_runtime.router.models import RuntimeType, ExecutionTarget
+
+    monkeypatch.setattr(runtime_resolver, "has_avx2", lambda: False)
+
+    garden = ModelGarden()
+    bitnet_manifest = garden.get("bitnet_b1_58_2b")
+    assert bitnet_manifest is not None
+
+    resolver = ExecutionRuntimeResolver()
+    placement = await resolver.resolve_execution(bitnet_manifest, privacy=PrivacyRequirement.AIRGAPPED_LOCAL_ONLY)
+    assert placement.target != ExecutionTarget.LOCAL_CPU_NATIVE
+    if placement.target == ExecutionTarget.LOCAL_CPU_CONTAINER:
+        assert placement.runtime_type == RuntimeType.CONTAINER
+    else:
+        assert ("AVX2" in placement.why or "unsupported" in placement.reason or "offline" in placement.why)

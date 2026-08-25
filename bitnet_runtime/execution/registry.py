@@ -162,15 +162,33 @@ class ExecutionRegistry:
         if not instance and self._loaded_instances:
             instance = list(self._loaded_instances.values())[-1]
         backend = self._backends[instance.backend_type]
-        return await backend.complete(
-            model_id=model_id,
-            prompt=prompt,
-            system_prompt=system_prompt,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stop_sequences=stop_sequences,
-            **kwargs,
-        )
+        
+        try:
+            return await backend.complete(
+                model_id=model_id,
+                prompt=prompt,
+                system_prompt=system_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stop_sequences=stop_sequences,
+                **kwargs,
+            )
+        except Exception as ex:
+            bitnet = self._backends.get(BackendType.BITNET_SIDECAR)
+            if bitnet and backend != bitnet and manifest.modality in (ModelModality.GENERATIVE_TEXT, "generative_text"):
+                h_b = await bitnet.check_health()
+                if h_b.status == BackendStatus.ONLINE:
+                    logger.info(f"Failing over from {backend.backend_type.value} to bitnet_sidecar for model '{model_id}'")
+                    return await bitnet.complete(
+                        model_id=model_id,
+                        prompt=prompt,
+                        system_prompt=system_prompt,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        stop_sequences=stop_sequences,
+                        **kwargs,
+                    )
+            raise
 
     async def embed(
         self,

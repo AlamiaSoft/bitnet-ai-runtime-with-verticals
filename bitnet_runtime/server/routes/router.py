@@ -49,12 +49,25 @@ async def complete_with_router(payload: Dict[str, Any]) -> Dict[str, Any]:
     resp, trace = await ai_router.complete(prompt=prompt, task_type=task_type)
     telemetry_collector.record_trace(trace, prompt=prompt, response_text=resp.text)
 
-    endpoint_desc = "bitnet-sidecar (ai.alamiaconnect.com)" if trace.executed_model_id == "bitnet_b1_58_2b" else ("test-harness mock" if trace.executed_model_id == "mock_local_engine" else "local in-process GGUF")
+    endpoint_desc = trace.endpoint or "Native In-Process GGUF (CPU)"
+    runtime_type = trace.runtime_type.value if trace.runtime_type and hasattr(trace.runtime_type, "value") else str(trace.runtime_type or "")
+    execution_target = trace.execution_target.value if trace.execution_target and hasattr(trace.execution_target, "value") else str(trace.execution_target or "")
+    
+    decision = trace.decision
+    model_reason = decision.model_selection.model_reason if decision and decision.model_selection else None
+    execution_reason = decision.execution_placement.reason if decision and decision.execution_placement else None
+    why = trace.why or (decision.why if decision else "")
+
     return {
         "text": resp.text,
         "executed_model_id": trace.executed_model_id,
         "latency_ms": trace.latency_ms,
         "estimated_cost_usd": trace.estimated_cost_usd,
         "endpoint": endpoint_desc,
+        "runtime_type": runtime_type,
+        "execution_target": execution_target,
+        "model_reason": model_reason,
+        "execution_reason": execution_reason,
+        "why": why,
         "trace": asdict(trace),
     }

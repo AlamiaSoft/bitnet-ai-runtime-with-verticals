@@ -3,6 +3,7 @@ from typing import Dict, List, Optional
 from ..logging import logger
 from .models import (
     ModelCapabilityProfile,
+    ModelSelectionResult,
     ModelTier,
     PrivacyRequirement,
     RoutingDecision,
@@ -27,6 +28,11 @@ class RoutingPolicyEngine:
 
         # 1. Apply Hard Constraints
         for m in all_candidates:
+            # Filter development-only test fixtures from production routing
+            if getattr(m, "is_development_only", False) or m.model_id.startswith("mock_") or m.provider == "mock":
+                filter_reasons[m.model_id] = "Development-only test fixture excluded from production router"
+                continue
+
             # Health check
             if not m.is_healthy:
                 filter_reasons[m.model_id] = "Unhealthy status"
@@ -68,19 +74,36 @@ class RoutingPolicyEngine:
 
         # Fallback if no candidate meets all strict constraints
         if not eligible_candidates:
-            # Provide emergency fallback from any healthy local model
-            fallback_local = [m for m in all_candidates if m.is_healthy and m.tier in (ModelTier.LOCAL_1BIT, ModelTier.LOCAL_DENSE)]
+            # Provide emergency fallback from any healthy local model (excluding mocks)
+            fallback_local = [
+                m for m in all_candidates
+                if m.is_healthy
+                and not getattr(m, "is_development_only", False)
+                and not m.model_id.startswith("mock_")
+                and m.tier in (ModelTier.LOCAL_1BIT, ModelTier.LOCAL_DENSE)
+            ]
             if fallback_local:
                 primary = fallback_local[0]
+                model_reason = f"Emergency fallback for '{req.task_type.value}' to {primary.name}"
+                model_selection = ModelSelectionResult(
+                    model_id=primary.model_id,
+                    model_name=primary.name,
+                    model_reason=model_reason,
+                    quality_score=primary.quality_score,
+                    candidate_scores={m.model_id: 1.0 for m in fallback_local},
+                    fallback_chain=[m.model_id for m in fallback_local[1:]],
+                )
                 return RoutingDecision(
                     primary_model=primary,
                     fallback_chain=fallback_local[1:],
                     rationale=f"Emergency local fallback: no model met strict criteria ({filter_reasons}).",
                     candidate_scores={m.model_id: 1.0 for m in fallback_local},
+                    model_selection=model_selection,
+                    why=model_reason,
                 )
             raise RuntimeError(f"No eligible model candidates available for task requirements: {req}. Filter reasons: {filter_reasons}")
 
-        # 2. Score Eligible Candidates
+        # 2. Score Eligible Candidates (Cheapest/Fastest Capable Model)
         scores: Dict[str, float] = {}
         for m in eligible_candidates:
             score = 50.0  # Base score
@@ -96,7 +119,7 @@ class RoutingPolicyEngine:
             if req.preferred_tier and m.tier == req.preferred_tier:
                 score += 30.0
 
-            # Granular Task-Specific Benchmark Alignment (Core intelligence weight)
+            # Task-Specific Benchmark Alignment
             score += (task_rating - req.min_quality) * 20.0
 
             # Cost efficiency (zero-cost local models get strong boost)
@@ -105,19 +128,23 @@ class RoutingPolicyEngine:
             else:
                 score -= (m.cost_per_1k_input * 1000.0)
 
-            # Latency alignment
+            # Latency & Speed Optimization (Strong boost for fast edge CPU execution)
             if m.typical_latency_ms <= 120.0:
-                score += 10.0
-            elif m.typical_latency_ms <= 250.0:
-                score += 8.0
-            elif m.typical_latency_ms <= 500.0:
-                score += 4.0
+                score += 25.0
+            elif m.typical_latency_ms <= 300.0:
+                score += 15.0
+            elif m.typical_latency_ms <= 600.0:
+                score += 5.0
             else:
                 score -= (m.typical_latency_ms / 100.0)
 
-            # Ultra-light edge classification bonus for 1-bit models
-            if req.task_type == TaskType.CLASSIFICATION and m.tier == ModelTier.LOCAL_1BIT:
-                score += 10.0
+            # Task-Specific Optimization:
+            # - Dialogue & Classification: Fast 1-bit CPU models (e.g. BitNet 2B) get speed/efficiency boost
+            if req.task_type in (TaskType.DIALOGUE, TaskType.CLASSIFICATION) and m.tier == ModelTier.LOCAL_1BIT:
+                score += 15.0
+            # - Complex Tasks (Extraction, Coding, Reasoning, Summarization): Capable dense models get precision boost
+            elif req.task_type in (TaskType.EXTRACTION, TaskType.CODING, TaskType.REASONING, TaskType.SUMMARIZATION) and m.tier == ModelTier.LOCAL_DENSE:
+                score += 15.0
 
             scores[m.model_id] = round(score, 2)
 
@@ -126,10 +153,27 @@ class RoutingPolicyEngine:
         primary = ranked_candidates[0]
         fallback_chain = ranked_candidates[1:]
 
+        task_rating = primary.task_ratings.get(req.task_type, primary.quality_score)
+        model_reason = (
+            f"Task '{req.task_type.value}' optimal match (Rating: {task_rating:.1f}/5.0, "
+            f"Tier: {primary.tier.value}, Context: {primary.context_window} tokens)"
+        )
         rationale = f"Selected '{primary.name}' ({primary.tier}) with score {scores[primary.model_id]} for task '{req.task_type}'."
+
+        model_selection = ModelSelectionResult(
+            model_id=primary.model_id,
+            model_name=primary.name,
+            model_reason=model_reason,
+            quality_score=primary.quality_score,
+            candidate_scores=scores,
+            fallback_chain=[m.model_id for m in fallback_chain],
+        )
+
         return RoutingDecision(
             primary_model=primary,
             fallback_chain=fallback_chain,
             rationale=rationale,
             candidate_scores=scores,
+            model_selection=model_selection,
+            why=model_reason,
         )

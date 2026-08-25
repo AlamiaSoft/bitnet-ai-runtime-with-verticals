@@ -42,11 +42,17 @@ Build the unified local AI agent runtime powered by small, capable AI models on 
   - [x] Reconciled all 10 subsystems with single sources of truth
   - [x] Established 3-tier execution provider hierarchy and deterministic 8-stage request lifecycle
   - [x] Gated self-learning rules behind automated regression sandboxes
-- [x] **Full Test Suite Passing**: **66 / 66 unit and integration tests passed (100%)**
+- [x] **API Capability Layer & Gateway (Sprints S0 & S1)**:
+  - [x] Canonical Pydantic v2 capability schemas (InferenceRequest/Response, ChatRequest/Response, ExtractRequest/Response, ClassifyRequest/Response, EmbeddingRequest/Response, RerankRequest/Response, HealthResponse, ExecutionMetadata)
+  - [x] Public capability router at `/v1` decoupling consuming applications (Sales Employee, WhatsApp Employee, microservices) from specific model names or GGUF files
+  - [x] Automatic task-to-model capability resolution through AIRouter and ModelGarden
+  - [x] High-performance SSE token streaming endpoint (`POST /v1/chat/stream`)
+  - [x] Added `X-Request-ID` and `X-Response-Time-Ms` global request tracing middleware
+  - [x] Authoritative 9-scenario API test suite (`tests/test_api_gateway.py`)
+- [x] **Full Test Suite Passing**: **75 / 75 unit and integration tests passed (100%)**
 
 ## Current Focus & Next Steps
-1. **Model Garden GGUF Verification**: Run test suite against real Qwen 2.5, Phi-3.5, and Gemma 2 models on CPU.
-2. **Capability Benchmarks Suite**: Build test harness covering extraction, arithmetic, reasoning, and search.
-3. **Router Benchmark Validation**: Prove that arithmetic routes to tools/calculator, extraction routes to Qwen, and dialogue routes to BitNet.
-4. **Comprehensive Verification & Fallback Loop**: Wire output validators directly into the router failover chain.
-5. **Regression-Gated Self-Learning**: Enable candidate rule sandboxing and benchmark-gated promotion.
+1. **Model Garden Physical Execution**: Validate in-process GGUF execution against physical models on disk.
+2. **Client SDKs & Vertical Adapters (S2)**: Update Vertical AI Employee agents to consume the `/v1` capability contracts.
+3. **Observability & Trace Ledger (S3)**: Connect the `/v1` execution traces to persistent SQLite observability ledger.
+4. **Adaptive Caching (S4)**: Integrate deterministic prompt and semantic embedding cache on the `/v1` gateway.

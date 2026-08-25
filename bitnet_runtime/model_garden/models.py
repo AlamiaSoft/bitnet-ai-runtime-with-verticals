@@ -11,6 +11,7 @@ class TaskType(str, enum.Enum):
     REASONING = "reasoning"
     CODING = "coding"
     CREATIVE = "creative"
+    DIALOGUE = "dialogue"
     HIGH_RISK_ACTION = "high_risk_action"
 
 class ModelTier(str, enum.Enum):
@@ -66,6 +67,7 @@ class ModelManifest:
     download_url: Optional[str] = None
     sha256_checksum: Optional[str] = None
     is_healthy: bool = True
+    is_development_only: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def get_task_rating(self, task_type: TaskType) -> float:

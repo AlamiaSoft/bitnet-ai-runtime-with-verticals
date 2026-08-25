@@ -17,6 +17,23 @@ class LatencyRequirement(str, enum.Enum):
     INTERACTIVE = "interactive"    # < 3000ms (standard user dialogue)
     BATCH = "batch"                # Asynchronous background queues
 
+class RuntimeType(str, enum.Enum):
+    NATIVE_CPU = "native_cpu"           # In-process llama.cpp or native portable C++ binary
+    NATIVE_GPU = "native_gpu"           # Local hardware acceleration
+    CONTAINER = "container"             # Docker sidecar container (optional)
+    REMOTE_FALLBACK = "remote_fallback" # Remote VPS / Cloud Tunnel
+    CLOUD_FRONTIER = "cloud_frontier"   # External frontier model APIs (OpenAI, Anthropic)
+    MOCK = "mock"
+
+class ExecutionTarget(str, enum.Enum):
+    LOCAL_CPU_INPROCESS = "local_cpu_inprocess"
+    LOCAL_CPU_NATIVE = "local_cpu_native"
+    LOCAL_CPU_CONTAINER = "local_cpu_container"
+    LOCAL_GPU = "local_gpu"
+    REMOTE_VPS_FALLBACK = "remote_vps_fallback"
+    CLOUD_FRONTIER = "cloud_frontier"
+    MOCK = "mock"
+
 @dataclass
 class ModelCapabilityProfile:
     model_id: str
@@ -33,6 +50,7 @@ class ModelCapabilityProfile:
     is_healthy: bool = True
     is_installed: bool = False
     is_loaded: bool = False
+    is_development_only: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
@@ -47,11 +65,33 @@ class TaskRequirements:
     preferred_tier: Optional[ModelTier] = None
 
 @dataclass
+class ModelSelectionResult:
+    model_id: str
+    model_name: str
+    model_reason: str
+    quality_score: float = 3.0
+    candidate_scores: Dict[str, float] = field(default_factory=dict)
+    fallback_chain: List[str] = field(default_factory=list)
+
+@dataclass
+class ExecutionPlacement:
+    runtime_type: RuntimeType
+    target: ExecutionTarget
+    reason: str
+    endpoint_url: str
+    endpoint_label: str
+    fallback_chain: List[str] = field(default_factory=list)
+    why: str = ""
+
+@dataclass
 class RoutingDecision:
     primary_model: ModelCapabilityProfile
     fallback_chain: List[ModelCapabilityProfile]
     rationale: str
     candidate_scores: Dict[str, float] = field(default_factory=dict)
+    model_selection: Optional[ModelSelectionResult] = None
+    execution_placement: Optional[ExecutionPlacement] = None
+    why: str = ""
 
 @dataclass
 class RoutingTrace:
@@ -60,6 +100,10 @@ class RoutingTrace:
     task_requirements: Optional[TaskRequirements] = None
     decision: Optional[RoutingDecision] = None
     executed_model_id: Optional[str] = None
+    runtime_type: Optional[RuntimeType] = None
+    execution_target: Optional[ExecutionTarget] = None
+    endpoint: Optional[str] = None
+    why: str = ""
     fallback_invoked: bool = False
     attempts: List[Dict[str, Any]] = field(default_factory=list)
     latency_ms: float = 0.0

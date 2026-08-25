@@ -52,13 +52,20 @@ class BitNetBackend(ExecutionBackend):
     def backend_type(self) -> BackendType:
         return BackendType.BITNET_SIDECAR
 
+    def get_endpoint_description(self) -> str:
+        active = self._active_endpoint or self.endpoint_url or ""
+        if any(loc in active for loc in ["bitnet-runtime", "bitnet-server", "127.0.0.1", "localhost", "172.", "host.docker.internal"]):
+            return "bitnet-sidecar (local container / 8080)"
+        domain = active.replace("https://", "").replace("http://", "").split("/")[0]
+        return f"bitnet-sidecar ({domain})" if domain else "bitnet-sidecar (local)"
+
     async def check_health(self) -> BackendHealth:
         headers = self._get_headers()
-        endpoints_to_try = [
-            f"{self.base_url}/health",
-            f"{self.endpoint_url}/health",
-            f"{self.base_url}/models",
-            f"{self.endpoint_url}/models",
+        local_endpoints = [
+            "http://bitnet-runtime:11434/health",
+            "http://bitnet-runtime:11434/v1/models",
+            "http://bitnet-server:11434/health",
+            "http://bitnet-server:11434/v1/models",
             "http://127.0.0.1:8080/health",
             "http://127.0.0.1:8080/v1/models",
             "http://bitnet-server:8080/health",
@@ -70,6 +77,13 @@ class BitNetBackend(ExecutionBackend):
             "http://host.docker.internal:8080/health",
             "http://host.docker.internal:8080/v1/models",
         ]
+        remote_endpoints = [
+            f"{self.base_url}/health",
+            f"{self.endpoint_url}/health",
+            f"{self.base_url}/models",
+            f"{self.endpoint_url}/models",
+        ]
+        endpoints_to_try = local_endpoints + remote_endpoints
 
         last_probe_err = None
         try:
@@ -154,23 +168,37 @@ class BitNetBackend(ExecutionBackend):
             "stop": stop_sequences or [],
         }
 
-        urls_to_try = []
-        if self._active_endpoint:
-            urls_to_try.extend([
-                f"{self._active_endpoint}/v1/chat/completions",
-                f"{self._active_endpoint}/chat/completions",
-            ])
+        # If a specific endpoint_url is passed by the ExecutionPlacement, prioritize it directly
+        explicit_ep = kwargs.get("endpoint_url")
+        if explicit_ep:
+            clean_base = explicit_ep.replace("/chat/completions", "").replace("/v1", "").rstrip("/")
+            urls_to_try = [
+                f"{clean_base}/v1/chat/completions",
+                f"{clean_base}/chat/completions",
+            ]
+        else:
+            urls_to_try = []
+            if self._active_endpoint:
+                urls_to_try.extend([
+                    f"{self._active_endpoint}/v1/chat/completions",
+                    f"{self._active_endpoint}/chat/completions",
+                ])
 
-        urls_to_try.extend([
-            f"{self.endpoint_url}/chat/completions",
-            f"{self.base_url}/v1/chat/completions",
-            f"{self.base_url}/chat/completions",
-            "http://127.0.0.1:8080/v1/chat/completions",
-            "http://bitnet-server:8080/v1/chat/completions",
-            "http://172.17.0.1:8080/v1/chat/completions",
-            "http://172.30.0.1:8080/v1/chat/completions",
-            "http://host.docker.internal:8080/v1/chat/completions",
-        ])
+            local_urls = [
+                "http://bitnet-runtime:11434/v1/chat/completions",
+                "http://bitnet-server:11434/v1/chat/completions",
+                "http://127.0.0.1:8080/v1/chat/completions",
+                "http://bitnet-server:8080/v1/chat/completions",
+                "http://172.17.0.1:8080/v1/chat/completions",
+                "http://172.30.0.1:8080/v1/chat/completions",
+                "http://host.docker.internal:8080/v1/chat/completions",
+            ]
+            remote_urls = [
+                f"{self.endpoint_url}/chat/completions",
+                f"{self.base_url}/v1/chat/completions",
+                f"{self.base_url}/chat/completions",
+            ]
+            urls_to_try.extend(local_urls + remote_urls)
 
         # Remove duplicates preserving order
         seen = set()
@@ -183,6 +211,9 @@ class BitNetBackend(ExecutionBackend):
                 try:
                     res = await client.post(target_url, json=payload)
                     if res.status_code == 200:
+                        # Record working active endpoint
+                        base_working = target_url.replace("/v1/chat/completions", "").replace("/chat/completions", "")
+                        self._active_endpoint = base_working
                         break
                 except Exception as ex:
                     last_err = ex

@@ -52,13 +52,15 @@ The `ExecutionRegistry` treats backends as **execution providers**, while the `A
                                           │
         ┌─────────────────────────────────┼─────────────────────────────────┐
         ▼                                 ▼                                 ▼
-   [Provider 1: In-Process]      [Provider 2: Sidecar]         [Provider 3: Cloud Escalation]
-   • Driver: llama-cpp-python    • Driver: bitnet-server       • Driver: OpenAI / Anthropic
+   [Provider 1: In-Process]     [Provider 2: BitNet Service]   [Provider 3: Cloud Escalation]
+   • Driver: llama-cpp-python    • Driver: bitnet.cpp server   • Driver: OpenAI / Anthropic
    • Scope: Qwen, Phi, Gemma,    • Scope: BitNet b1.58 2B-4T   • Scope: Complex reasoning
-     BGE Embeddings, Reranker      (Ternary LUT / GEMM)          escalation (Optional)
+     BGE Embeddings, Reranker      (Ternary LUT / I2_S GEMM)     escalation (Optional)
    • Target: /app/models/*.gguf  • Target: Dedicated Container • Target: Cloud API
-   • Privacy: 100% Air-Gapped    • Privacy: Local LAN/Sidecar  • Privacy: External Net (Opt-in)
+   • Privacy: 100% Air-Gapped    • Privacy: Local Airgap/LAN   • Privacy: External Net (Opt-in)
 ```
+
+> **BitNet Execution Invariant**: BitNet execution is provided by an isolated BitNet execution provider backed by Microsoft's `bitnet.cpp` runtime server. Direct in-process BitNet execution inside the core Python runtime is non-authoritative. Provider symmetry ensures the Router, Model Garden, and Agents treat BitNet identically across local portable, containerized, and dedicated server topologies.
 
 ---
 

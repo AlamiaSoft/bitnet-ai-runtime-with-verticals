@@ -65,6 +65,7 @@ class ModelGarden:
                 ),
                 provider_backend="bitnet",
                 task_ratings={
+                    TaskType.DIALOGUE: 4.6,
                     TaskType.CLASSIFICATION: 4.6,
                     TaskType.EXTRACTION: 4.2,
                     TaskType.SUMMARIZATION: 4.0,
@@ -100,6 +101,7 @@ class ModelGarden:
                 ),
                 provider_backend="llamacpp",
                 task_ratings={
+                    TaskType.DIALOGUE: 4.8,
                     TaskType.EXTRACTION: 4.8,
                     TaskType.CLASSIFICATION: 4.7,
                     TaskType.CODING: 3.8,
@@ -135,6 +137,7 @@ class ModelGarden:
                 ),
                 provider_backend="llamacpp",
                 task_ratings={
+                    TaskType.DIALOGUE: 4.7,
                     TaskType.REASONING: 4.6,
                     TaskType.CODING: 4.3,
                     TaskType.RAG_QA: 4.5,
@@ -170,6 +173,7 @@ class ModelGarden:
                 ),
                 provider_backend="llamacpp",
                 task_ratings={
+                    TaskType.DIALOGUE: 4.6,
                     TaskType.CREATIVE: 4.5,
                     TaskType.SUMMARIZATION: 4.3,
                     TaskType.CLASSIFICATION: 4.3,
@@ -204,6 +208,7 @@ class ModelGarden:
                 ),
                 provider_backend="llamacpp",
                 task_ratings={
+                    TaskType.DIALOGUE: 4.6,
                     TaskType.REASONING: 4.3,
                     TaskType.CODING: 4.1,
                     TaskType.RAG_QA: 4.3,
@@ -349,6 +354,7 @@ class ModelGarden:
                 hardware=HardwareRequirements(min_ram_mb=0, requires_gpu=False),
                 provider_backend="cloud",
                 task_ratings={
+                    TaskType.DIALOGUE: 4.9,
                     TaskType.REASONING: 4.9,
                     TaskType.CODING: 4.9,
                     TaskType.HIGH_RISK_ACTION: 4.9,
@@ -366,7 +372,7 @@ class ModelGarden:
         )
 
         # ==========================================
-        # 5. Fast Test Mock Manifest
+        # 5. Fast Test Mock Manifest (Development Only)
         # ==========================================
         self.register_manifest(
             ModelManifest(
@@ -384,6 +390,7 @@ class ModelGarden:
                 cost_per_1k_output=0.0,
                 typical_latency_ms=10.0,
                 license="MIT",
+                is_development_only=True,
                 description="Zero-dependency mock runner for continuous integration and unit testing.",
             )
         )

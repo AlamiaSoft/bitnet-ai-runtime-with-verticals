@@ -18,7 +18,7 @@ class LocalEndpointEngine(InferenceEngine):
         timeout: float = 60.0,
     ):
         import os
-        self.endpoint_url = (endpoint_url or os.getenv("BITNET_LOCAL_ENDPOINT_URL", "http://127.0.0.1:11434/v1")).rstrip("/")
+        self.endpoint_url = (endpoint_url or os.getenv("BITNET_LOCAL_ENDPOINT_URL", "http://127.0.0.1:8080/v1")).rstrip("/")
         self.model_name = model_name or os.getenv("BITNET_LOCAL_MODEL_NAME", "llama3.2:1b")
         self.api_key = api_key or os.getenv("BITNET_API_KEY", "local")
         self.timeout = timeout

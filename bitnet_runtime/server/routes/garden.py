@@ -188,7 +188,15 @@ async def chat_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, A
             model_name=manifest.name,
         )
 
-        endpoint_desc = "bitnet-sidecar (ai.alamiaconnect.com)" if manifest.family == ModelFamily.BITNET else ("test-harness mock" if model_id == "mock_local_engine" else "local in-process GGUF")
+        from ...execution.base import BackendType
+        if manifest.family == ModelFamily.BITNET:
+            bitnet_backend = execution_registry._backends.get(BackendType.BITNET_SIDECAR)
+            endpoint_desc = bitnet_backend.get_endpoint_description() if bitnet_backend and hasattr(bitnet_backend, "get_endpoint_description") else "bitnet-sidecar (local container / 8080)"
+        elif model_id == "mock_local_engine":
+            endpoint_desc = "test-harness mock"
+        else:
+            endpoint_desc = "local in-process GGUF"
+
         return {
             "model_id": model_id,
             "model_name": manifest.name,

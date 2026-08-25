@@ -1,8 +1,11 @@
 from __future__ import annotations
+import time
+import uuid
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
+from ..api.v1.gateway import router as v1_gateway_router
 from ..config import config
 from ..logging import logger
 from pathlib import Path
@@ -38,6 +41,20 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.middleware("http")
+    async def add_request_metadata(request: Request, call_next):
+        req_id = request.headers.get("X-Request-ID") or f"req_{uuid.uuid4().hex[:10]}"
+        t_start = time.time()
+        response = await call_next(request)
+        duration_ms = round((time.time() - t_start) * 1000.0, 2)
+        response.headers["X-Request-ID"] = req_id
+        response.headers["X-Response-Time-Ms"] = str(duration_ms)
+        return response
+
+    # Mount v1 Capability Gateway (Primary Public API Contract)
+    app.include_router(v1_gateway_router)
+
+    # Legacy / Internal Routes
     app.include_router(agents_router, prefix="/api/v1")
     app.include_router(memory_router, prefix="/api/v1")
     app.include_router(webhooks_router, prefix="/api/v1")

@@ -10,6 +10,17 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # Automatically load .env file from working directory or project root
 load_dotenv()
 
+class RuntimePreferenceSettings(BaseModel):
+    """User-facing runtime selection preference persisted across sessions."""
+    preference: str = Field(
+        default_factory=lambda: os.getenv("BITNET_RUNTIME_PREFERENCE", "auto"),
+        description="Runtime preference: 'auto' | 'native' | 'docker'",
+    )
+    preference_file: Path = Field(
+        default_factory=lambda: Path(os.getenv("BITNET_RUNTIME_PREF_FILE", "data/runtime_preference.json")),
+        description="Path to persist the runtime preference JSON file",
+    )
+
 class RuntimeSettings(BaseModel):
     name: str = Field(default_factory=lambda: os.getenv("ALAMIA_RUNTIME_NAME", os.getenv("BITNET_RUNTIME_NAME", "Alamia Local AI Runtime")))
     environment: str = Field(default_factory=lambda: os.getenv("BITNET_ENV", os.getenv("ENVIRONMENT", "development")))
@@ -53,7 +64,7 @@ class InferenceSettings(BaseModel):
         default_factory=lambda: int(os.getenv("BITNET_THREADS", "4"))
     )
     local_endpoint_url: str = Field(
-        default_factory=lambda: os.getenv("BITNET_LOCAL_ENDPOINT_URL", "http://127.0.0.1:11434/v1")
+        default_factory=lambda: os.getenv("BITNET_LOCAL_ENDPOINT_URL", "http://127.0.0.1:8080/v1")
     )
 
 class MemorySettings(BaseModel):
@@ -151,6 +162,7 @@ class AppConfig(BaseSettings):
     memory: MemorySettings = Field(default_factory=MemorySettings)
     agent: AgentSettings = Field(default_factory=AgentSettings)
     verticals: VerticalsConfig = Field(default_factory=VerticalsConfig)
+    runtime_preference: RuntimePreferenceSettings = Field(default_factory=RuntimePreferenceSettings)
 
     @classmethod
     def load_from_yaml(cls, path: str | Path = "config.example.yaml") -> AppConfig:

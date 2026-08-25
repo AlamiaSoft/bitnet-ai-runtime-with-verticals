@@ -1801,8 +1801,10 @@ function initStaticViews(){
       }
       const modelLabel = res.executed_model_id || res.model_name || res.model_id || state.selectedChatModel;
       const lat = (res.latency_ms !== undefined && res.latency_ms !== null) ? `${Number(res.latency_ms).toFixed(1)}ms` : 'local';
-      const endpointLabel = res.endpoint || (res.executed_model_id === 'bitnet_b1_58_2b' ? 'bitnet-sidecar (ai.alamiaconnect.com)' : 'local in-process GGUF');
-      aiMsg.innerHTML = `${res.text}<div class="msg-meta">${modelLabel} · ${lat} · ${endpointLabel}</div>`;
+      const endpointLabel = res.endpoint || (res.executed_model_id === 'bitnet_b1_58_2b' ? 'bitnet-sidecar (local)' : 'local in-process GGUF');
+      const why = res.why || (res.trace && res.trace.why);
+      const whyHtml = why ? `<details style="margin-top:4px;cursor:pointer;font-size:10px;color:var(--text-muted);"><summary style="outline:none;user-select:none;">[Why this route?]</summary><div style="margin-top:2px;padding:4px 8px;background:rgba(0,0,0,0.15);border-radius:4px;line-height:1.4;color:var(--text);">${why}</div></details>` : '';
+      aiMsg.innerHTML = `${res.text}<div class="msg-meta">${modelLabel} · ${lat} · ${endpointLabel}${whyHtml}</div>`;
     } catch(e) {
       aiMsg.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
     }
