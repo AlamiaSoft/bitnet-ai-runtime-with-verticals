@@ -27,8 +27,13 @@ class ExecutionRegistry:
     active model instances in RAM, and routing requests to the appropriate engine.
     """
 
-    def __init__(self, use_mock_fallback_for_tests: bool = True):
-        self.use_mock = use_mock_fallback_for_tests
+    def __init__(self, use_mock_fallback_for_tests: Optional[bool] = None):
+        import os
+        if use_mock_fallback_for_tests is not None:
+            self.use_mock = use_mock_fallback_for_tests
+        else:
+            self.use_mock = (config.inference.default_provider == "mock") or os.getenv("BITNET_USE_MOCK", "false").lower() in ("true", "1")
+
         self._backends: Dict[BackendType, ExecutionBackend] = {
             BackendType.LLAMACPP: LlamaCppBackend(),
             BackendType.TEI: TEIBackend(),
@@ -88,8 +93,8 @@ class ExecutionRegistry:
         if h_b.status == BackendStatus.ONLINE and manifest.modality in (ModelModality.GENERATIVE_TEXT, "generative_text"):
             return bitnet
 
-        # 5. Mock backend (for offline CI test suites)
-        if self.use_mock:
+        # 5. Local embedding, reranker, or test mock fallback
+        if self.use_mock or manifest.provider_backend in ("local_embedding", "local_reranker", "mock"):
             return self._backends[BackendType.MOCK]
 
         raise RuntimeError(

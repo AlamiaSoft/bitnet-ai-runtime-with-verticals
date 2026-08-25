@@ -55,9 +55,6 @@ class InferenceSettings(BaseModel):
     local_endpoint_url: str = Field(
         default_factory=lambda: os.getenv("BITNET_LOCAL_ENDPOINT_URL", "http://127.0.0.1:11434/v1")
     )
-    api_key: Optional[str] = Field(
-        default_factory=lambda: os.getenv("BITNET_API_KEY")
-    )
 
 class MemorySettings(BaseModel):
     db_path: Path = Field(
