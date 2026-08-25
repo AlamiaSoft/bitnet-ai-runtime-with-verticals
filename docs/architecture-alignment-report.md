@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary & Principles
 
-This document defines the canonical architecture for the **Alamia Local AI Runtime**. It establishes strict subsystem ownership, a unified 3-tier execution hierarchy, and a deterministic 7-stage request lifecycle.
+This document defines the canonical architecture for the **Alamia Local AI Runtime**. It establishes strict subsystem ownership, a unified 3-tier execution hierarchy, and a deterministic 8-stage request lifecycle.
 
 ```text
                                ALAMIA LOCAL AI
