@@ -80,7 +80,7 @@ class BitNetBackend(ExecutionBackend):
         return BackendHealth(
             backend_type=self.backend_type,
             status=BackendStatus.OFFLINE,
-            endpoint=self.endpoint_url,
+            endpoint_url=self.endpoint_url,
             active_models=list(self._loaded_models.keys()),
         )
 
