@@ -35,6 +35,7 @@ class BitNetBackend(ExecutionBackend):
         self.api_key = api_key or config.inference.api_key or os.getenv("BITNET_API_KEY", "51129693340")
         self.timeout = timeout
         self._loaded_models: Dict[str, LoadedModelInstance] = {}
+        self._active_endpoint: Optional[str] = None
 
     def _get_headers(self) -> Dict[str, str]:
         headers = {"Content-Type": "application/json"}
@@ -59,24 +60,39 @@ class BitNetBackend(ExecutionBackend):
             "http://bitnet-server:8080/v1/models",
             "http://172.17.0.1:8080/health",
             "http://172.17.0.1:8080/v1/models",
+            "http://172.18.0.1:8080/health",
+            "http://172.30.0.1:8080/health",
             "http://host.docker.internal:8080/health",
+            "http://host.docker.internal:8080/v1/models",
         ]
+
         try:
-            async with httpx.AsyncClient(timeout=6.0, headers=headers, verify=False) as client:
-                for ep in endpoints_to_try:
+            async with httpx.AsyncClient(timeout=2.0, headers=headers, verify=False) as client:
+                async def _probe(ep: str) -> Optional[str]:
                     try:
                         res = await client.get(ep)
                         if res.status_code == 200:
-                            return BackendHealth(
-                                backend_type=self.backend_type,
-                                status=BackendStatus.ONLINE,
-                                endpoint_url=self.endpoint_url,
-                                active_models=list(self._loaded_models.keys()),
-                            )
+                            return ep
                     except Exception:
-                        continue
+                        pass
+                    return None
+
+                results = await asyncio.gather(*[_probe(ep) for ep in endpoints_to_try], return_exceptions=True)
+                for working_ep in results:
+                    if isinstance(working_ep, str) and working_ep:
+                        if "/health" in working_ep:
+                            self._active_endpoint = working_ep.replace("/health", "")
+                        elif "/models" in working_ep:
+                            self._active_endpoint = working_ep.replace("/models", "").removesuffix("/v1")
+                        return BackendHealth(
+                            backend_type=self.backend_type,
+                            status=BackendStatus.ONLINE,
+                            endpoint_url=self._active_endpoint or self.endpoint_url,
+                            active_models=list(self._loaded_models.keys()),
+                        )
         except Exception as e:
             logger.debug(f"bitnet-server health check offline: {e}")
+
         return BackendHealth(
             backend_type=self.backend_type,
             status=BackendStatus.OFFLINE,
@@ -127,20 +143,32 @@ class BitNetBackend(ExecutionBackend):
             "stop": stop_sequences or [],
         }
 
-        urls_to_try = [
+        urls_to_try = []
+        if self._active_endpoint:
+            urls_to_try.extend([
+                f"{self._active_endpoint}/v1/chat/completions",
+                f"{self._active_endpoint}/chat/completions",
+            ])
+
+        urls_to_try.extend([
             f"{self.endpoint_url}/chat/completions",
             f"{self.base_url}/v1/chat/completions",
             f"{self.base_url}/chat/completions",
             "http://127.0.0.1:8080/v1/chat/completions",
             "http://bitnet-server:8080/v1/chat/completions",
             "http://172.17.0.1:8080/v1/chat/completions",
+            "http://172.30.0.1:8080/v1/chat/completions",
             "http://host.docker.internal:8080/v1/chat/completions",
-        ]
+        ])
+
+        # Remove duplicates preserving order
+        seen = set()
+        unique_urls = [u for u in urls_to_try if not (u in seen or seen.add(u))]
 
         async with httpx.AsyncClient(timeout=self.timeout, headers=self._get_headers(), verify=False) as client:
             res = None
             last_err = None
-            for target_url in urls_to_try:
+            for target_url in unique_urls:
                 try:
                     res = await client.post(target_url, json=payload)
                     if res.status_code == 200:

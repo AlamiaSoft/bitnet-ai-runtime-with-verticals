@@ -32,7 +32,14 @@ class ExecutionRegistry:
         if use_mock_fallback_for_tests is not None:
             self.use_mock = use_mock_fallback_for_tests
         else:
-            self.use_mock = (config.inference.default_provider == "mock") or os.getenv("BITNET_USE_MOCK", "false").lower() in ("true", "1")
+            is_prod = (
+                os.getenv("ENVIRONMENT", "development").lower() == "production"
+                or os.getenv("BITNET_ENV", "").lower() == "production"
+            )
+            if is_prod:
+                self.use_mock = (config.inference.default_provider == "mock") or os.getenv("BITNET_USE_MOCK", "false").lower() in ("true", "1")
+            else:
+                self.use_mock = True
 
         self._backends: Dict[BackendType, ExecutionBackend] = {
             BackendType.LLAMACPP: LlamaCppBackend(),
