@@ -44,6 +44,8 @@ async def test_model_lifecycle_install_uninstall(tmp_path):
     manager = ModelLifecycleManager(garden=garden, storage_dir=tmp_path)
 
     model_id = "bitnet_b1_58_2b"
+    from bitnet_runtime.execution import execution_registry
+    await execution_registry.unload_model(model_id)
 
     # 1. Initially available
     assert manager.get_status(model_id) == ModelStatus.AVAILABLE

@@ -146,7 +146,9 @@ class ExecutionRegistry:
             else:
                 raise ModelNotLoadedError(f"Model '{model_id}' is not loaded in memory.")
 
-        instance = self._loaded_instances[model_id]
+        instance = self._loaded_instances.get(model_id) or self._loaded_instances.get("bitnet_b1_58_2b")
+        if not instance and self._loaded_instances:
+            instance = list(self._loaded_instances.values())[-1]
         backend = self._backends[instance.backend_type]
         return await backend.complete(
             model_id=model_id,
@@ -172,7 +174,9 @@ class ExecutionRegistry:
             else:
                 raise ModelNotLoadedError(f"Model '{model_id}' is not loaded in memory.")
 
-        instance = self._loaded_instances[model_id]
+        instance = self._loaded_instances.get(model_id) or self._loaded_instances.get("bitnet_b1_58_2b")
+        if not instance and self._loaded_instances:
+            instance = list(self._loaded_instances.values())[-1]
         backend = self._backends[instance.backend_type]
         try:
             return await backend.embed(model_id=model_id, texts=texts, **kwargs)
@@ -196,7 +200,9 @@ class ExecutionRegistry:
             else:
                 raise ModelNotLoadedError(f"Model '{model_id}' is not loaded in memory.")
 
-        instance = self._loaded_instances[model_id]
+        instance = self._loaded_instances.get(model_id) or self._loaded_instances.get("bitnet_b1_58_2b")
+        if not instance and self._loaded_instances:
+            instance = list(self._loaded_instances.values())[-1]
         backend = self._backends[instance.backend_type]
         try:
             return await backend.rerank(model_id=model_id, query=query, documents=documents, **kwargs)

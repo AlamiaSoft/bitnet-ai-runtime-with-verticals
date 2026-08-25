@@ -61,13 +61,20 @@ class ModelLifecycleManager:
             model_path = self.get_model_file_path(manifest.model_id)
             if model_path.exists() and model_path.stat().st_size > 0:
                 self._model_states[manifest.model_id] = ModelStatus.INSTALLED
-            elif manifest.provider_backend == "cloud":
-                self._model_states[manifest.model_id] = ModelStatus.AVAILABLE
             else:
                 self._model_states[manifest.model_id] = ModelStatus.AVAILABLE
 
     def get_model_file_path(self, model_id: str) -> Path:
-        return self.storage_dir / f"{model_id}.gguf"
+        primary = self.storage_dir / f"{model_id}.gguf"
+        if primary.exists():
+            return primary
+        normalized = self.storage_dir / f"{model_id.replace('.', '_')}.gguf"
+        if normalized.exists():
+            return normalized
+        dots = self.storage_dir / f"{model_id.replace('_', '.')}.gguf"
+        if dots.exists():
+            return dots
+        return primary
 
     def get_status(self, model_id: str) -> ModelStatus:
         if model_id in self._active_downloads:
@@ -75,7 +82,10 @@ class ModelLifecycleManager:
         from ..execution import execution_registry
         if execution_registry.is_model_loaded(model_id):
             return ModelStatus.LOADED
-        return self._model_states.get(model_id, ModelStatus.AVAILABLE)
+        model_path = self.get_model_file_path(model_id)
+        if model_path.exists() and model_path.stat().st_size > 0:
+            return ModelStatus.INSTALLED
+        return ModelStatus.AVAILABLE
 
     def get_download_progress(self, model_id: str) -> Optional[DownloadProgress]:
         return self._active_downloads.get(model_id)
