@@ -11,7 +11,7 @@ from typing import Any, AsyncGenerator, Callable, Dict, List, Optional
 import httpx
 from ..logging import logger
 from .catalog import ModelGarden
-from .models import ModelManifest
+from .models import ModelFamily, ModelManifest
 
 class ModelStatus(str, enum.Enum):
     AVAILABLE = "available"      # Catalog entry, not yet downloaded
@@ -58,11 +58,7 @@ class ModelLifecycleManager:
 
     def _sync_installed_states(self) -> None:
         for manifest in self.garden.list_all():
-            model_path = self.get_model_file_path(manifest.model_id)
-            if model_path.exists() and model_path.stat().st_size > 0:
-                self._model_states[manifest.model_id] = ModelStatus.INSTALLED
-            else:
-                self._model_states[manifest.model_id] = ModelStatus.AVAILABLE
+            self._model_states[manifest.model_id] = self.get_status(manifest.model_id)
 
     def get_model_file_path(self, model_id: str) -> Path:
         primary = self.storage_dir / f"{model_id}.gguf"
@@ -79,12 +75,32 @@ class ModelLifecycleManager:
     def get_status(self, model_id: str) -> ModelStatus:
         if model_id in self._active_downloads:
             return self._active_downloads[model_id].status
+
+        manifest = self.garden.get(model_id)
+        if not manifest:
+            return ModelStatus.AVAILABLE
+
         from ..execution import execution_registry
-        if execution_registry.is_model_loaded(model_id):
-            return ModelStatus.LOADED
+
+        # 1. Physical on-disk verification in storage_dir
         model_path = self.get_model_file_path(model_id)
         if model_path.exists() and model_path.stat().st_size > 0:
+            if execution_registry.is_model_loaded(model_id):
+                return ModelStatus.LOADED
             return ModelStatus.INSTALLED
+
+        # 2. Sidecar models (BitNet)
+        if manifest.family == ModelFamily.BITNET or manifest.provider_backend == "bitnet":
+            if execution_registry.is_model_loaded(model_id):
+                return ModelStatus.LOADED
+            return ModelStatus.AVAILABLE
+
+        # 3. Test harness / Mock model
+        if model_id == "mock_local_engine" or manifest.provider_backend == "mock":
+            if execution_registry.is_model_loaded(model_id):
+                return ModelStatus.LOADED
+            return ModelStatus.AVAILABLE
+
         return ModelStatus.AVAILABLE
 
     def get_download_progress(self, model_id: str) -> Optional[DownloadProgress]:
