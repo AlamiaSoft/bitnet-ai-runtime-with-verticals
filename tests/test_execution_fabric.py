@@ -75,3 +75,19 @@ async def test_embedding_and_reranking_execution():
     )
     assert len(rerank_res.results) == 2
     assert rerank_res.results[0].score >= rerank_res.results[1].score
+
+@pytest.mark.asyncio
+async def test_llamacpp_backend_dual_mode(tmp_path):
+    from bitnet_runtime.execution.backends.llamacpp_backend import LlamaCppBackend
+    backend = LlamaCppBackend(storage_dir=tmp_path)
+    health = await backend.check_health()
+    assert health is not None
+    assert health.backend_type == BackendType.LLAMACPP
+    # Test resolve non-existent local model
+    assert backend._resolve_local_model_path("non_existent_model") is None
+    # Load model registration
+    instance = await backend.load_model("qwen2.5_1.5b_instruct")
+    assert instance.model_id == "qwen2.5_1.5b_instruct"
+    assert backend.is_model_loaded("qwen2.5_1.5b_instruct")
+    assert await backend.unload_model("qwen2.5_1.5b_instruct") is True
+

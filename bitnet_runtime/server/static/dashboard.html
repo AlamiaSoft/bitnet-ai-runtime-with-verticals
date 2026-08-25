@@ -1801,7 +1801,8 @@ function initStaticViews(){
       }
       const modelLabel = res.executed_model_id || res.model_name || res.model_id || state.selectedChatModel;
       const lat = (res.latency_ms !== undefined && res.latency_ms !== null) ? `${Number(res.latency_ms).toFixed(1)}ms` : 'local';
-      aiMsg.innerHTML = `${res.text}<div class="msg-meta">${modelLabel} · ${lat} · local</div>`;
+      const endpointLabel = res.endpoint || (res.executed_model_id === 'bitnet_b1_58_2b' ? 'bitnet-sidecar (ai.alamiaconnect.com)' : 'local in-process GGUF');
+      aiMsg.innerHTML = `${res.text}<div class="msg-meta">${modelLabel} · ${lat} · ${endpointLabel}</div>`;
     } catch(e) {
       aiMsg.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
     }

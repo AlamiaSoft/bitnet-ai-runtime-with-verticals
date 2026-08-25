@@ -46,20 +46,39 @@ class LlamaCppEngine(InferenceEngine):
         full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
 
         if self._llm is not None:
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+
             loop = asyncio.get_running_loop()
-            output = await loop.run_in_executor(
-                None,
-                lambda: self._llm(
-                    full_prompt,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                    stop=stop_sequences or [],
-                ),
-            )
-            text = output["choices"][0]["text"]
-            usage = output.get("usage", {})
+            try:
+                output = await loop.run_in_executor(
+                    None,
+                    lambda: self._llm.create_chat_completion(
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        stop=stop_sequences or [],
+                    ),
+                )
+                text = output["choices"][0]["message"]["content"]
+                usage = output.get("usage", {})
+            except Exception:
+                output = await loop.run_in_executor(
+                    None,
+                    lambda: self._llm(
+                        full_prompt,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        stop=stop_sequences or [],
+                    ),
+                )
+                text = output["choices"][0]["text"]
+                usage = output.get("usage", {})
+
             return CompletionResponse(
-                text=text,
+                text=text.strip(),
                 model=Path(self.model_path).name if self.model_path else "llamacpp-gguf",
                 usage=TokenUsage(
                     prompt_tokens=usage.get("prompt_tokens", len(full_prompt.split())),

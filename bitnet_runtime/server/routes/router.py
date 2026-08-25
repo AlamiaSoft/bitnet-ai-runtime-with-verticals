@@ -49,10 +49,12 @@ async def complete_with_router(payload: Dict[str, Any]) -> Dict[str, Any]:
     resp, trace = await ai_router.complete(prompt=prompt, task_type=task_type)
     telemetry_collector.record_trace(trace, prompt=prompt, response_text=resp.text)
 
+    endpoint_desc = "bitnet-sidecar (ai.alamiaconnect.com)" if trace.executed_model_id == "bitnet_b1_58_2b" else ("test-harness mock" if trace.executed_model_id == "mock_local_engine" else "local in-process GGUF")
     return {
         "text": resp.text,
         "executed_model_id": trace.executed_model_id,
         "latency_ms": trace.latency_ms,
         "estimated_cost_usd": trace.estimated_cost_usd,
+        "endpoint": endpoint_desc,
         "trace": asdict(trace),
     }

@@ -8,6 +8,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from sse_starlette.sse import EventSourceResponse
 from ...model_garden import (
     HardwareDiscoveryEngine,
+    ModelFamily,
     ModelGarden,
     ModelLifecycleManager,
     ModelModality,
@@ -187,6 +188,7 @@ async def chat_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, A
             model_name=manifest.name,
         )
 
+        endpoint_desc = "bitnet-sidecar (ai.alamiaconnect.com)" if manifest.family == ModelFamily.BITNET else ("test-harness mock" if model_id == "mock_local_engine" else "local in-process GGUF")
         return {
             "model_id": model_id,
             "model_name": manifest.name,
@@ -195,6 +197,7 @@ async def chat_with_model(model_id: str, payload: Dict[str, Any]) -> Dict[str, A
             "tokens_used": tokens,
             "cost_usd": cost,
             "provider": manifest.provider_backend,
+            "endpoint": endpoint_desc,
         }
     except Exception as e:
         latency = round((time.time() - start_time) * 1000.0, 1)
