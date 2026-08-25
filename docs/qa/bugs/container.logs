@@ -1,0 +1,89 @@
+
+Starting BitNet Local AI Server on http://0.0.0.0:8000
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+[08/25/26 09:12:16] INFO     Starting Alamia Local AI Runtime Server...         
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     172.30.0.1:35324 - "GET /api/v1/garden/storage HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35338 - "GET /api/v1/execution/memory HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35350 - "GET /api/v1/router/telemetry HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35358 - "GET /api/v1/garden/models HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35372 - "GET /api/v1/garden/hardware HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35310 - "GET /api/v1/execution/backends HTTP/1.1" 200 OK
+[08/25/26 09:12:23] WARNING  Model 'bitnet_b1_58_2b' failed execution (BitNet   
+                             backend (https://ai.alamiaconnect.com/v1) is       
+                             offline.). Invoking next fallback candidate...     
+                    WARNING  Model 'qwen2.5_1.5b_instruct' failed execution (No 
+                             active execution backend online for model          
+                             'qwen2.5_1.5b_instruct'. Please ensure llama-server
+                             or BitNet container is running.). Invoking next    
+                             fallback candidate...                              
+[08/25/26 09:12:24] WARNING  Model 'gemma2_2b_it' failed execution (No active   
+                             execution backend online for model 'gemma2_2b_it'. 
+                             Please ensure llama-server or BitNet container is  
+                             running.). Invoking next fallback candidate...     
+                    WARNING  Model 'llama3.2_3b_instruct' failed execution (No  
+                             active execution backend online for model          
+                             'llama3.2_3b_instruct'. Please ensure llama-server 
+                             or BitNet container is running.). Invoking next    
+                             fallback candidate...                              
+                    WARNING  Model 'phi3.5_mini_3.8b' failed execution (No      
+                             active execution backend online for model          
+                             'phi3.5_mini_3.8b'. Please ensure llama-server or  
+                             BitNet container is running.). Invoking next       
+                             fallback candidate...                              
+[08/25/26 09:12:25] INFO     Model 'mock_local_engine' successfully loaded via  
+                             mock                                               
+INFO:     172.30.0.1:35372 - "POST /api/v1/router/complete HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35372 - "GET / HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35372 - "GET /api/v1/garden/models HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35372 - "GET /api/v1/execution/memory HTTP/1.1" 200 OK
+INFO:     172.30.0.1:43574 - "GET /api/v1/garden/hardware HTTP/1.1" 200 OK
+INFO:     172.30.0.1:43580 - "GET /api/v1/garden/storage HTTP/1.1" 200 OK
+INFO:     172.30.0.1:43602 - "GET /api/v1/router/telemetry HTTP/1.1" 200 OK
+INFO:     172.30.0.1:43592 - "GET /api/v1/execution/backends HTTP/1.1" 200 OK
+INFO:     172.30.0.1:43606 - "GET /api/v1/garden/hardware HTTP/1.1" 200 OK
+INFO:     172.30.0.1:42000 - "GET /api/v1/router/telemetry HTTP/1.1" 200 OK
+INFO:     172.30.0.1:42014 - "GET /api/v1/execution/memory HTTP/1.1" 200 OK
+INFO:     172.30.0.1:42018 - "GET /api/v1/garden/storage HTTP/1.1" 200 OK
+INFO:     172.30.0.1:42016 - "GET /api/v1/garden/models HTTP/1.1" 200 OK
+INFO:     172.30.0.1:41988 - "GET /api/v1/execution/backends HTTP/1.1" 200 OK
+INFO:     172.30.0.1:33322 - "GET /api/v1/garden/storage HTTP/1.1" 200 OK
+INFO:     172.30.0.1:33328 - "GET /api/v1/garden/hardware HTTP/1.1" 200 OK
+INFO:     172.30.0.1:33342 - "GET /api/v1/execution/memory HTTP/1.1" 200 OK
+INFO:     172.30.0.1:33346 - "GET /api/v1/router/telemetry HTTP/1.1" 200 OK
+INFO:     172.30.0.1:33348 - "GET /api/v1/garden/models HTTP/1.1" 200 OK
+INFO:     172.30.0.1:33356 - "GET /api/v1/execution/backends HTTP/1.1" 200 OK
+INFO:     172.30.0.1:59008 - "GET /api/v1/router/telemetry HTTP/1.1" 200 OK
+INFO:     172.30.0.1:59002 - "GET /api/v1/execution/memory HTTP/1.1" 200 OK
+INFO:     172.30.0.1:59020 - "GET /api/v1/garden/models HTTP/1.1" 200 OK
+INFO:     172.30.0.1:59040 - "GET /api/v1/garden/storage HTTP/1.1" 200 OK
+INFO:     172.30.0.1:59042 - "GET /api/v1/garden/hardware HTTP/1.1" 200 OK
+INFO:     172.30.0.1:59032 - "GET /api/v1/execution/backends HTTP/1.1" 200 OK
+INFO:     172.30.0.1:59032 - "POST /api/v1/execution/models/bitnet_b1_58_2b/load HTTP/1.1" 500 Internal Server Error
+INFO:     172.30.0.1:59042 - "GET /api/v1/execution/memory HTTP/1.1" 200 OK
+INFO:     172.30.0.1:59040 - "GET /api/v1/garden/hardware HTTP/1.1" 200 OK
+INFO:     172.30.0.1:59020 - "GET /api/v1/garden/models HTTP/1.1" 200 OK
+INFO:     172.30.0.1:59008 - "GET /api/v1/router/telemetry HTTP/1.1" 200 OK
+INFO:     172.30.0.1:59002 - "GET /api/v1/garden/storage HTTP/1.1" 200 OK
+INFO:     172.30.0.1:59032 - "GET /api/v1/execution/backends HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35772 - "GET /api/v1/garden/storage HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35788 - "GET /api/v1/garden/models HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35796 - "GET /api/v1/garden/hardware HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35806 - "GET /api/v1/execution/memory HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35814 - "GET /api/v1/router/telemetry HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35808 - "GET /api/v1/execution/backends HTTP/1.1" 200 OK
+INFO:     172.30.0.1:35808 - "POST /api/v1/garden/models/bitnet_b1_58_2b/chat HTTP/1.1" 500 Internal Server Error
+INFO:     172.30.0.1:52398 - "GET /api/v1/execution/memory HTTP/1.1" 200 OK
+INFO:     172.30.0.1:52402 - "GET /api/v1/router/telemetry HTTP/1.1" 200 OK
+INFO:     172.30.0.1:52416 - "GET /api/v1/garden/hardware HTTP/1.1" 200 OK
+INFO:     172.30.0.1:52432 - "GET /api/v1/garden/models HTTP/1.1" 200 OK
+INFO:     172.30.0.1:52434 - "GET /api/v1/garden/storage HTTP/1.1" 200 OK
+INFO:     172.30.0.1:52408 - "GET /api/v1/execution/backends HTTP/1.1" 200 OK
+INFO:     172.30.0.1:49854 - "GET /api/v1/router/telemetry HTTP/1.1" 200 OK
+INFO:     172.30.0.1:49860 - "GET /api/v1/garden/hardware HTTP/1.1" 200 OK
+INFO:     172.30.0.1:49874 - "GET /api/v1/execution/memory HTTP/1.1" 200 OK
+INFO:     172.30.0.1:49890 - "GET /api/v1/garden/storage HTTP/1.1" 200 OK
+INFO:     172.30.0.1:49898 - "GET /api/v1/garden/models HTTP/1.1" 200 OK
+INFO:     172.30.0.1:49882 - "GET /api/v1/execution/backends HTTP/1.1" 200 OK

@@ -1781,22 +1781,27 @@ function initStaticViews(){
     msgList.scrollTop = msgList.scrollHeight;
 
     try {
-      let res;
+      let rawRes;
       if(!state.selectedChatModel || state.selectedChatModel === 'auto'){
-        res = await fetch('/api/v1/router/complete', {
+        rawRes = await fetch('/api/v1/router/complete', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({prompt: text})
-        }).then(r=>r.json());
+        });
       } else {
-        res = await fetch(`/api/v1/garden/models/${state.selectedChatModel}/chat`, {
+        rawRes = await fetch(`/api/v1/garden/models/${state.selectedChatModel}/chat`, {
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({prompt: text})
-        }).then(r=>r.json());
+        });
+      }
+      const res = await rawRes.json();
+      if(!rawRes.ok){
+        throw new Error(res.detail || res.message || `Server returned ${rawRes.status}`);
       }
       const modelLabel = res.executed_model_id || res.model_name || res.model_id || state.selectedChatModel;
-      aiMsg.innerHTML = `${res.text}<div class="msg-meta">${modelLabel} · ${res.latency_ms.toFixed(1)}ms · local</div>`;
+      const lat = (res.latency_ms !== undefined && res.latency_ms !== null) ? `${Number(res.latency_ms).toFixed(1)}ms` : 'local';
+      aiMsg.innerHTML = `${res.text}<div class="msg-meta">${modelLabel} · ${lat} · local</div>`;
     } catch(e) {
       aiMsg.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
     }

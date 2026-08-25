@@ -53,9 +53,16 @@ class BitNetBackend(ExecutionBackend):
             f"{self.endpoint_url}/health",
             f"{self.base_url}/models",
             f"{self.endpoint_url}/models",
+            "http://127.0.0.1:8080/health",
+            "http://127.0.0.1:8080/v1/models",
+            "http://bitnet-server:8080/health",
+            "http://bitnet-server:8080/v1/models",
+            "http://172.17.0.1:8080/health",
+            "http://172.17.0.1:8080/v1/models",
+            "http://host.docker.internal:8080/health",
         ]
         try:
-            async with httpx.AsyncClient(timeout=4.0, headers=headers) as client:
+            async with httpx.AsyncClient(timeout=6.0, headers=headers, verify=False) as client:
                 for ep in endpoints_to_try:
                     try:
                         res = await client.get(ep)
@@ -73,7 +80,7 @@ class BitNetBackend(ExecutionBackend):
         return BackendHealth(
             backend_type=self.backend_type,
             status=BackendStatus.OFFLINE,
-            endpoint_url=self.endpoint_url,
+            endpoint=self.endpoint_url,
             active_models=list(self._loaded_models.keys()),
         )
 
@@ -120,22 +127,30 @@ class BitNetBackend(ExecutionBackend):
             "stop": stop_sequences or [],
         }
 
-        async with httpx.AsyncClient(timeout=self.timeout, headers=self._get_headers()) as client:
+        urls_to_try = [
+            f"{self.endpoint_url}/chat/completions",
+            f"{self.base_url}/v1/chat/completions",
+            f"{self.base_url}/chat/completions",
+            "http://127.0.0.1:8080/v1/chat/completions",
+            "http://bitnet-server:8080/v1/chat/completions",
+            "http://172.17.0.1:8080/v1/chat/completions",
+            "http://host.docker.internal:8080/v1/chat/completions",
+        ]
+
+        async with httpx.AsyncClient(timeout=self.timeout, headers=self._get_headers(), verify=False) as client:
             res = None
-            for target_url in [
-                f"{self.endpoint_url}/chat/completions",
-                f"{self.base_url}/v1/chat/completions",
-                f"{self.base_url}/chat/completions",
-            ]:
+            last_err = None
+            for target_url in urls_to_try:
                 try:
                     res = await client.post(target_url, json=payload)
                     if res.status_code == 200:
                         break
-                except Exception:
+                except Exception as ex:
+                    last_err = ex
                     continue
 
             if res is None or res.status_code != 200:
-                err_msg = res.text if res is not None else "Endpoint unreachable"
+                err_msg = res.text if res is not None else (str(last_err) if last_err else "Endpoint unreachable")
                 raise RuntimeError(f"bitnet-server error: {err_msg}")
             data = res.json()
             choice = data["choices"][0]["message"]
