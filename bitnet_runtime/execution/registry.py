@@ -76,7 +76,7 @@ class ExecutionRegistry:
         if manifest.family in (ModelFamily.BITNET, "bitnet") or manifest.provider_backend == "bitnet":
             bitnet = self._backends[BackendType.BITNET_SIDECAR]
             h_b = await bitnet.check_health()
-            if h_b.status == BackendStatus.ONLINE:
+            if h_b.status == BackendStatus.ONLINE or not self.use_mock:
                 return bitnet
             if not self.use_mock:
                 raise RuntimeError(f"BitNet backend ({bitnet.endpoint_url}) is offline.")
@@ -97,7 +97,7 @@ class ExecutionRegistry:
         # 4. Fallback to BitNet sidecar if it is online and model is generative text
         bitnet = self._backends[BackendType.BITNET_SIDECAR]
         h_b = await bitnet.check_health()
-        if h_b.status == BackendStatus.ONLINE and manifest.modality in (ModelModality.GENERATIVE_TEXT, "generative_text"):
+        if (h_b.status == BackendStatus.ONLINE or not self.use_mock) and manifest.modality in (ModelModality.GENERATIVE_TEXT, "generative_text"):
             return bitnet
 
         # 5. Local embedding, reranker, or test mock fallback

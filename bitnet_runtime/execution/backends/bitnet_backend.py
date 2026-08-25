@@ -38,7 +38,11 @@ class BitNetBackend(ExecutionBackend):
         self._active_endpoint: Optional[str] = None
 
     def _get_headers(self) -> Dict[str, str]:
-        headers = {"Content-Type": "application/json"}
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        }
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         return headers
@@ -66,15 +70,19 @@ class BitNetBackend(ExecutionBackend):
             "http://host.docker.internal:8080/v1/models",
         ]
 
+        last_probe_err = None
         try:
-            async with httpx.AsyncClient(timeout=2.0, headers=headers, verify=False) as client:
+            async with httpx.AsyncClient(timeout=3.0, headers=headers, verify=False) as client:
                 async def _probe(ep: str) -> Optional[str]:
+                    nonlocal last_probe_err
                     try:
                         res = await client.get(ep)
                         if res.status_code == 200:
                             return ep
-                    except Exception:
-                        pass
+                        else:
+                            last_probe_err = f"HTTP {res.status_code} on {ep}"
+                    except Exception as ex:
+                        last_probe_err = f"{ex} on {ep}"
                     return None
 
                 results = await asyncio.gather(*[_probe(ep) for ep in endpoints_to_try], return_exceptions=True)
@@ -91,13 +99,15 @@ class BitNetBackend(ExecutionBackend):
                             active_models=list(self._loaded_models.keys()),
                         )
         except Exception as e:
-            logger.debug(f"bitnet-server health check offline: {e}")
+            last_probe_err = str(e)
 
+        logger.info(f"BitNet sidecar health probe reported OFFLINE. Last probe detail: {last_probe_err}")
         return BackendHealth(
             backend_type=self.backend_type,
             status=BackendStatus.OFFLINE,
             endpoint_url=self.endpoint_url,
             active_models=list(self._loaded_models.keys()),
+            details={"error": last_probe_err},
         )
 
     async def load_model(self, model_id: str, model_path: Optional[str] = None, **kwargs: Any) -> LoadedModelInstance:
